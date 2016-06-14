@@ -1,5 +1,5 @@
 const Rx = require('rxjs');
-
+window.Rx = Rx;
 
 const incommingMessages = new Rx.Subject();
 const connected = new Rx.Subject();
@@ -34,16 +34,19 @@ const onlineEvent = Rx.Observable.fromEvent(window, 'online');
 
 
 function openSocket() {
-  const socket = new WebSocket('ws://localhost:9292');
+  const protocol = document.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const endpoint = `${protocol}//${document.location.hostname}:${document.location.port}`;
+
+  const socket = new WebSocket(endpoint);
   const subscription = Rx.Observable.fromEvent(socket, 'message').subscribe(incommingMessages);
 
   socket.addEventListener('open', function() {
     socket.send(lastId);
-    connected.onNext(true);
+    connected.next(true);
   });
 
   socket.addEventListener('close', function(event) {
-    connected.onNext(false);
+    connected.next(false);
     // TODO: maybe event.wasClean is useful?
     //https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
     console.log('closed', event.wasClean);
@@ -52,7 +55,7 @@ function openSocket() {
     // TODO: Check the navigator.onLine and window online/offline events
     setTimeout(openSocket, 1000);
 
-    subscription.dispose();
+    subscription.unsubscribe();
   });
 
   socket.addEventListener('error', function(event) {

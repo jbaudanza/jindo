@@ -97,7 +97,7 @@ wss.on('connection', function(socket) {
   socket.on('close', function() {
     console.log("Closing WebSocket");
     if (subscription) {
-      subscription.dispose();
+      subscription.unsubscribe();
     }
   });
 });

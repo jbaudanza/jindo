@@ -34,10 +34,10 @@ const notifications = new Rx.Subject();
 
 pg.connect(conString, function(err, client, done) {
   if (err) {
-    notifications.onError(err);
+    notifications.error(err);
   } else {
     client.on('notification', function(event) {
-      notifications.onNext(event);
+      notifications.next(event);
     });
 
     client.query('LISTEN events');
