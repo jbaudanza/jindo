@@ -2,7 +2,6 @@
 
 const express = require('express');
 const database = require('./database');
-const browserify = require('browserify-middleware');
 const WebSocketServer = require('ws').Server;
 
 const app = express();
@@ -33,7 +32,10 @@ if (app.settings.env === 'production') {
   });
 }
 
-app.get('/client.js', browserify('./client/index.js'));
+if (app.settings.env === 'development') {
+  const browserify = require('browserify-middleware');
+  app.get('/client.js', browserify('./client/index.js'));
+}
 
 const INSERT_SQL = `
   INSERT INTO events (actor_id, timestamp, ip_address, data, origin)

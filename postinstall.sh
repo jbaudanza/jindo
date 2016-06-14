@@ -1,0 +1,1 @@
+./node_modules/browserify/bin/cmd.js client/index.js -o public/client.js
