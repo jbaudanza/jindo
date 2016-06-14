@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="/client.js"></script>
+    <script>
+      function onSubmit(event) {
+        event.preventDefault();
+        const el = event.target.message;
+
+        backend.publish({message: el.value});
+
+        el.value = '';
+      }
+
+      backend.events
+        .scan((list, e) => list.concat(e), [])
+        .subscribe(function(list) {
+          const el = document.getElementById('message-list');
+          el.innerHTML = list.map((e) => `<li>${e.message}</li>`).join('');
+        });
+
+      backend.connected.subscribe(function(value) {
+        console.log(value);
+        document.getElementById('connected').innerHTML = value;
+      });
+    </script>
+  </head>
+
+  <body>
+    Connected: <span id="connected"></span>
+
+    <ul id='message-list'>
+    </ul>
+    <form onSubmit="onSubmit(event)">
+      <input name="message">
+    </form>
+  </body>
+
+</html>
