@@ -1,4 +1,6 @@
 const Rx = require('rxjs');
+const qs = require('qs');
+
 window.Rx = Rx;
 
 const incommingMessages = new Rx.Subject();
@@ -33,6 +35,9 @@ function isOffline() {
 const onlineEvent = Rx.Observable.fromEvent(window, 'online');
 
 
+let failures = 0;
+
+
 function openSocket() {
   const protocol = document.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const endpoint = `${protocol}//${document.location.hostname}:${document.location.port}`;
@@ -42,6 +47,7 @@ function openSocket() {
 
   socket.addEventListener('open', function() {
     socket.send(lastId);
+    failures = 0;
     connected.next(true);
   });
 
@@ -49,11 +55,14 @@ function openSocket() {
     connected.next(false);
     // TODO: maybe event.wasClean is useful?
     //https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
-    console.log('closed', event.wasClean);
+    console.log('closed', event.wasClean, event.code);
 
-    // TODO: Probably need something smarter than polling once per second
+    failures += 1;
+
+    // TODO: expose a countdown timer somehow
     // TODO: Check the navigator.onLine and window online/offline events
-    setTimeout(openSocket, 1000);
+    const delay = Math.pow(2, failures) * 1000;
+    setTimeout(openSocket, delay);
 
     subscription.unsubscribe();
   });
@@ -73,10 +82,27 @@ function publish(event) {
   })
 }
 
+const providersPromise = fetch('/providers.json').then(r => r.json());
+
+function authenticate() {
+  providersPromise.then(function(providers) {
+    const provider = providers['soundcloud'];
+
+    const url = provider.authUrl + "?" + qs.stringify({
+        client_id: provider.clientId,
+        redirect_uri: provider.redirectUri,
+        response_type: 'code'
+    });
+    window.open(url, 'login', 'width=620,height=600');
+  });
+}
+
+
 const backend = {
   events: events,
   publish: publish,
-  connected: connected
+  connected: connected,
+  authenticate: authenticate
 };
 
 
