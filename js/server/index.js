@@ -10,6 +10,7 @@ const WebSocketServer = require('ws').Server;
 const fetch = require('node-fetch');
 const qs = require('qs');
 const csurf = require('csurf');
+const Tokens = require('csrf');
 const cookieParser = require('cookie-parser');
 
 const app = express();
@@ -28,7 +29,8 @@ app.enable('trust proxy');
 app.use(require('morgan')(logFormat));
 app.use(express.static('public'));
 
-// To generate a good secret: openssl rand 64 -hex
+// To generate a good secret: openssl rand 32 -base64
+// TODO: Left off here. Cookie parser isn't working with csrf tool
 app.use(cookieParser(process.env['SECRET']));
 
 app.use(require('express-promise')());
@@ -69,20 +71,29 @@ for (let k in providersJson) {
   )
 }
 
-app.get('/providers.json', function(req, res) {
-  res.json(providers);
+
+const csrfProtection = csurf({
+  cookie: true
 });
 
 
-// TODO: rename this to oauth callback
-const csrfProtection = csurf({cookie: true});
-app.get('/oauth-callback/:provider', csrfProtection, function(req, res) {
-  console.log('csrf', req.csrfToken());
+app.get('/providers.json', csrfProtection, function(req, res) {
+  res.json(Object.assign({csrf: req.csrfToken()}, providers));
+});
 
+
+const tokens = new Tokens();
+
+app.get('/oauth-callback/:provider', function(req, res) {
   if (!req.query['code']) {
     res.status('400').send('Missing oauth code');
     return;
   };
+
+  if (!tokens.verify(req.cookies._csrf, req.query['state'])) {
+    res.status('403').send('CSRF failure');
+    return;
+  }
 
   const provider = providers[req.params.provider];
   const clientSecret = process.env[`${req.params.provider.toUpperCase()}_CLIENT_SECRET`];
@@ -108,7 +119,7 @@ app.get('/oauth-callback/:provider', csrfProtection, function(req, res) {
   }).then(res => res.json()).then(json => { console.log(json); res.send('OK')});
 });
 
-app.post('/events', function(req, res) {
+app.post('/events', csrfProtection, function(req, res) {
   if (!req.headers['origin']) {
     res.status(400).json({error: 'Origin header required'});
     return;

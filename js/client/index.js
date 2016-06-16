@@ -74,15 +74,25 @@ function openSocket() {
 
 openSocket();
 
-function publish(event) {
-  return fetch('/events', {
-    method: 'POST',
-    body: JSON.stringify(event),
-    headers: {'Content-Type': 'application/json'}
-  })
-}
+const providersPromise = (
+  fetch('/providers.json', {credentials: 'include'}).then(r => r.json())
+);
 
-const providersPromise = fetch('/providers.json').then(r => r.json());
+
+function publish(event) {
+  // TODO: Kind of weird to put the csrf token on the providers list
+  return providersPromise.then(function(providers) {
+    return fetch('/events', {
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify(event),
+      headers: {
+        'Content-Type': 'application/json',
+        'csrf-token': providers.csrf
+      }
+    })
+  });
+}
 
 function authenticate() {
   providersPromise.then(function(providers) {
@@ -91,8 +101,10 @@ function authenticate() {
     const url = provider.authUrl + "?" + qs.stringify({
         client_id: provider.clientId,
         redirect_uri: provider.redirectUri,
-        response_type: 'code'
+        response_type: 'code',
+        state: providers.csrf
     });
+
     window.open(url, 'login', 'width=620,height=600');
   });
 }
