@@ -1,6 +1,7 @@
 {
   "soundcloud": {
     "authUrl": "https://soundcloud.com/connect",
-    "tokenUrl": "https://api.soundcloud.com/oauth2/token"
+    "tokenUrl": "https://api.soundcloud.com/oauth2/token",
+    "profileUrl": "https://api.soundcloud.com/me.json"
   }
 }

@@ -78,6 +78,7 @@ const csrfProtection = csurf({
 
 
 app.get('/providers.json', csrfProtection, function(req, res) {
+  console.log(req.signedCookies);
   res.json(Object.assign({csrf: req.csrfToken()}, providers));
 });
 
@@ -112,11 +113,24 @@ app.get('/oauth-callback/:provider', function(req, res) {
   };
 
   // TODO: check for auth errors.
-  fetch(provider.tokenUrl, {
+  // This should set a cookie or something
+  // TODO: we should probably store this in some stream somewhere
+  const accessTokenResponse = fetch(provider.tokenUrl, {
     method: 'POST',
     body: qs.stringify(body),
     headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-  }).then(res => res.json()).then(json => { console.log(json); res.send('OK')});
+  }).then(res => res.json());
+
+  const profileResponse = accessTokenResponse.then(function(response) {
+    return fetch(provider.profileUrl, {
+      headers: {'Authorization': 'OAuth ' + response['access_token']}
+    }).then(r => r.json())
+  });
+
+  profileResponse.then(function(profile) {
+    res.cookie('user_id', "soundcloud:" + profile['id'], {signed: true});
+    res.send(profile);
+  })
 });
 
 app.post('/events', csrfProtection, function(req, res) {
