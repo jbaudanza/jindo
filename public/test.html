@@ -23,6 +23,13 @@
         console.log(value);
         document.getElementById('connected').innerHTML = value;
       });
+
+      function onClickLogin() {
+        backend.authenticate().then(function(result) {
+          console.log(result)
+        });
+      }
+
     </script>
   </head>
 
@@ -35,7 +42,7 @@
       <input name="message">
     </form>
 
-    <a href="#" id='login-link' onclick="backend.authenticate()">login</a>
+    <a href="#" id='login-link' onclick="onClickLogin()">login</a>
   </body>
 
 </html>

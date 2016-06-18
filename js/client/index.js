@@ -1,6 +1,8 @@
 const Rx = require('rxjs');
 const qs = require('qs');
+const jwtDecode = require('jwt-decode');
 
+window.jwtDecode = jwtDecode;
 window.Rx = Rx;
 
 const incommingMessages = new Rx.Subject();
@@ -94,8 +96,11 @@ function publish(event) {
   });
 }
 
+
+let authFunc = null;
+
 function authenticate() {
-  providersPromise.then(function(providers) {
+  return providersPromise.then(function(providers) {
     const provider = providers['soundcloud'];
 
     const url = provider.authUrl + "?" + qs.stringify({
@@ -105,10 +110,25 @@ function authenticate() {
         state: providers.csrf
     });
 
-    window.open(url, 'login', 'width=620,height=600');
+    const popup = window.open(url, 'login', 'width=620,height=600');
+
+    return new Promise(function(resolve, reject) {
+      authFunc = function(object) {
+        popup.close();
+        // TODO: check for errors here
+        resolve(object);
+      };
+    });
   });
 }
 
+
+window.authCallback = function(object) {
+  if (authFunc) {
+    authFunc(object);
+    authFunc = null;
+  }
+};
 
 const backend = {
   events: events,

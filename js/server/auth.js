@@ -58,7 +58,6 @@ app.get('/oauth-callback/:provider', function(req, res) {
   };
 
   // TODO: check for auth errors.
-  // This should set a cookie or something
   // TODO: we should probably store this in some stream somewhere
   const accessTokenResponse = fetch(provider.tokenUrl, {
     method: 'POST',
@@ -73,11 +72,41 @@ app.get('/oauth-callback/:provider', function(req, res) {
   });
 
   profileResponse.then(function(profile) {
-    res.cookie('user_id', "soundcloud:" + profile['id'], {signed: true});
-    console.log(jwt.sign({provider: 'soundcloud', userId: profile['id']}, process.env['SECRET']));
-    res.send(profile);
+    const identity = {
+      provider: 'soundcloud',
+      userId: profile['id']
+    };
+    const token = jwt.sign(identity, process.env['SECRET']);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(responseHtml(token));
   })
 });
+
+
+function responseHtml(token) {
+
+  return (
+`<!DOCTYPE html>
+<html lang="en">
+  <head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Authenticate</title>
+    <script type="text/javascript">
+      function onLoad() {
+        window.opener.setTimeout(
+          function(){window.opener.authCallback('${token}')}, 1
+        );
+      }
+    </script>
+  </head>
+  <body onload="onLoad()">
+    <b style="width: 100%; text-align: center;">
+      This popup should automatically close in a few seconds
+    </b>
+  </body>
+</html>
+`);
+};
+
 
 module.exports = app;
 
