@@ -7,11 +7,13 @@ if (process.env !== 'production') {
 const express = require('express');
 const database = require('./database');
 const WebSocketServer = require('ws').Server;
-const fetch = require('node-fetch');
-const qs = require('qs');
-const csurf = require('csurf');
-const Tokens = require('csrf');
+const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const csurf = require('csurf');
+
+const csrfProtection = csurf({
+  cookie: true
+});
 
 const app = express();
 
@@ -29,12 +31,13 @@ app.enable('trust proxy');
 app.use(require('morgan')(logFormat));
 app.use(express.static('public'));
 
-// To generate a good secret: openssl rand 32 -base64
-// TODO: Left off here. Cookie parser isn't working with csrf tool
-app.use(cookieParser(process.env['SECRET']));
 
 app.use(require('express-promise')());
 app.use(require('body-parser').json());
+
+// To generate a good secret: openssl rand 32 -base64
+app.use(cookieParser(process.env['SECRET']));
+app.use(csrfProtection);
 
 //
 // Ensure TLS is used in production
@@ -53,87 +56,15 @@ if (app.settings.env === 'development') {
   app.get('/client.js', browserify('./js/client/index.js'));
 }
 
+app.use(require('./auth'));
+
 const INSERT_SQL = `
   INSERT INTO events (actor_id, timestamp, ip_address, data, origin)
   VALUES (1, NOW(), $1, $2, $3)
 `;
 
-const providersJson = require('../providers');
-const providers = {};
 
-for (let k in providersJson) {
-  providers[k] = Object.assign(
-    {
-      clientId: process.env[`${k.toUpperCase()}_CLIENT_ID`],
-      redirectUri: `http://localhost:5000/oauth-callback/${k}`
-    },
-    providersJson[k]
-  )
-}
-
-
-const csrfProtection = csurf({
-  cookie: true
-});
-
-
-app.get('/providers.json', csrfProtection, function(req, res) {
-  console.log(req.signedCookies);
-  res.json(Object.assign({csrf: req.csrfToken()}, providers));
-});
-
-
-const tokens = new Tokens();
-
-app.get('/oauth-callback/:provider', function(req, res) {
-  if (!req.query['code']) {
-    res.status('400').send('Missing oauth code');
-    return;
-  };
-
-  if (!tokens.verify(req.cookies._csrf, req.query['state'])) {
-    res.status('403').send('CSRF failure');
-    return;
-  }
-
-  const provider = providers[req.params.provider];
-  const clientSecret = process.env[`${req.params.provider.toUpperCase()}_CLIENT_SECRET`];
-
-  if (!provider) {
-    res.status('404').send('Unknown auth provider');
-    return;
-  }
-
-  const body = {
-    grant_type: 'authorization_code',
-    client_secret: clientSecret,
-    client_id: provider.clientId,
-    code: req.query['code'],
-    redirect_uri: provider.redirectUri
-  };
-
-  // TODO: check for auth errors.
-  // This should set a cookie or something
-  // TODO: we should probably store this in some stream somewhere
-  const accessTokenResponse = fetch(provider.tokenUrl, {
-    method: 'POST',
-    body: qs.stringify(body),
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-  }).then(res => res.json());
-
-  const profileResponse = accessTokenResponse.then(function(response) {
-    return fetch(provider.profileUrl, {
-      headers: {'Authorization': 'OAuth ' + response['access_token']}
-    }).then(r => r.json())
-  });
-
-  profileResponse.then(function(profile) {
-    res.cookie('user_id', "soundcloud:" + profile['id'], {signed: true});
-    res.send(profile);
-  })
-});
-
-app.post('/events', csrfProtection, function(req, res) {
+app.post('/events', function(req, res) {
   if (!req.headers['origin']) {
     res.status(400).json({error: 'Origin header required'});
     return;
