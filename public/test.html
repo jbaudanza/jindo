@@ -2,47 +2,15 @@
 <html>
   <head>
     <script type="text/javascript" src="/client.js"></script>
-    <script>
-      function onSubmit(event) {
-        event.preventDefault();
-        const el = event.target.message;
-
-        backend.publish({message: el.value});
-
-        el.value = '';
-      }
-
-      backend.events
-        .scan((list, e) => list.concat(e), [])
-        .subscribe(function(list) {
-          const el = document.getElementById('message-list');
-          el.innerHTML = list.map((e) => `<li>${e.message}</li>`).join('');
-        });
-
-      backend.connected.subscribe(function(value) {
-        console.log(value);
-        document.getElementById('connected').innerHTML = value;
-      });
-
-      function onClickLogin() {
-        backend.authenticate().then(function(result) {
-          console.log(result)
-        });
-      }
-
-    </script>
+    <script type="text/javascript" src="/chat.js"></script>
   </head>
 
   <body>
-    Connected: <span id="connected"></span>
-
-    <ul id='message-list'>
-    </ul>
-    <form onSubmit="onSubmit(event)">
-      <input name="message">
-    </form>
-
-    <a href="#" id='login-link' onclick="onClickLogin()">login</a>
+    <div id="mount-node">
+    </div>
+    <script type="text/javascript">
+      window.main(document.getElementById('mount-node'), backend)
+    </script>
   </body>
 
 </html>

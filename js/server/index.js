@@ -54,6 +54,9 @@ if (app.settings.env === 'production') {
 if (app.settings.env === 'development') {
   const browserify = require('browserify-middleware');
   app.get('/client.js', browserify('./js/client/index.js'));
+  app.get('/chat.js', browserify('./js/chat/index.js', {
+    transform: [['babelify', {presets: ["react"]}]]
+  }));
 }
 
 app.use(require('./auth'));
