@@ -2,6 +2,10 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 
 
+function fetchProfile(identity) {
+  return fetch("http://api.soundcloud.com/users/" + identity.userId  + "?client_id=929237b25472ca25f7977cef36ee6808").then(r => r.json());
+}
+
 class ChatApp extends React.Component {
   constructor(props) {
     super(props);
@@ -20,11 +24,14 @@ class ChatApp extends React.Component {
   }
 
   onClickLogin() {
-    this.props.backend.authenticate().then(function(token) {
-      const identity = jwtDecode(token);
-      fetch("http://api.soundcloud.com/users/" + identity.userId  + "?client_id=929237b25472ca25f7977cef36ee6808").then(function(result) {console.log(result)})
-      console.log(token);
-    });
+    const tokenPromise = this.props.backend.authenticate();
+
+    tokenPromise.then(token => this.setState({token}));
+
+    tokenPromise
+        .then(jwtDecode)
+        .then(fetchProfile)
+        .then(profile => this.setState({profile}));
   }
 
   onSubmit(event) {
@@ -46,9 +53,17 @@ class ChatApp extends React.Component {
           <input name="message" />
         </form>
 
-        <a href="#" onClick={this.onClickLogin}>
-          login
-        </a>
+        {
+          this.state.profile ? (
+            <div>
+              <img src={this.state.profile.avatar_url} />
+            </div>
+          ) : (
+            <a href="#" onClick={this.onClickLogin}>
+              login
+            </a>
+          )
+        }
       </div>
     );
   }
