@@ -62,8 +62,8 @@ if (app.settings.env === 'development') {
 app.use(require('./auth'));
 
 const INSERT_SQL = `
-  INSERT INTO events (actor_id, timestamp, ip_address, data, origin)
-  VALUES (1, NOW(), $1, $2, $3)
+  INSERT INTO events (timestamp, actor, ip_address, data, origin)
+  VALUES (NOW(), $1, $2, $3, $4)
 `;
 
 
@@ -73,10 +73,28 @@ app.post('/events', function(req, res) {
     return;
   }
 
+  const event = req.body;
+
+  if ('timestamp' in event) {
+    res.status(400).json({error: 'Reserverd attribute: timestamp'});
+    return;
+  }
+
+  if ('actor' in event) {
+    res.status(400).json({error: 'Reserverd attribute: actor'});
+    return;
+  }
+
+  const authorization = req.headers['authorization'];
+  let actor;
+  if (authorization) {
+    actor = jwt.verify(authorization, process.env['SECRET']);
+  }
+
   // TODO:
   //  - do some validation on the body
   //  - do some kind of request throttling
-  const promise = database.query(INSERT_SQL, [req.ip, req.body, req.headers['origin']]);
+  const promise = database.query(INSERT_SQL, [actor, req.ip, event, req.headers['origin']]);
 
   promise.then(function() {
     database.query('NOTIFY events');

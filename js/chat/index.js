@@ -87,7 +87,7 @@ class ChatApp extends React.Component {
     event.preventDefault();
     const el = event.target.message;
     if (el.value) {
-      this.props.backend.publish({message: el.value});
+      this.props.backend.publish({message: el.value}, this.state.token);
       el.value = '';
     }
   }

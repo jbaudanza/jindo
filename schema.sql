@@ -2,7 +2,7 @@ DROP TABLE events;
 
 CREATE TABLE events (
   id SERIAL PRIMARY KEY,
-  actor_id INTEGER NOT NULL,
+  actor JSONB,
   timestamp TIMESTAMP,
   ip_address INET,
   name TEXT,

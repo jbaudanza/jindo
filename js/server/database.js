@@ -80,7 +80,8 @@ function transformEvent(row) {
   return Object.assign({}, row.data, {
     id: row.id,
     timestamp: row.timestamp,
-    path: row.path
+    path: row.path,
+    actor: row.actor
   })
 }
 

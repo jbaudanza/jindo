@@ -81,17 +81,23 @@ const providersPromise = (
 );
 
 
-function publish(event) {
+function publish(event, token) {
   // TODO: Kind of weird to put the csrf token on the providers list
   return providersPromise.then(function(providers) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'csrf-token': providers.csrf
+    };
+
+    if (token) {
+      headers['Authorization'] = token;
+    }
+
     return fetch('/events', {
       method: 'POST',
       credentials: 'include',
       body: JSON.stringify(event),
-      headers: {
-        'Content-Type': 'application/json',
-        'csrf-token': providers.csrf
-      }
+      headers: headers
     })
   });
 }
