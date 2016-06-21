@@ -93,9 +93,12 @@ app.post('/events', function(req, res, next) {
   // TODO:
   //  - do some validation on the body
 
-  database.shouldThrottle(req.ip, '10 seconds', 5).then(function(throttle) {
-    if (throttle) {
-      res.status(429).json({error: 'Too many requests'});
+  database.shouldThrottle(req.ip, '10 seconds', 5).then(function(retryAfter) {
+    if (retryAfter) {
+      res
+        .set('Retry-After', retryAfter)
+        .status(429)
+        .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       const promise = database.insertEvent(
         event, actor, req.ip, req.headers['origin']

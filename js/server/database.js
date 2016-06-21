@@ -46,12 +46,17 @@ function insertEvent(event, actor, ip, origin) {
 
 function shouldThrottle(ipAddress, windowSize, maxCount) {
   const sql = `
-    SELECT COUNT(*) AS count FROM events
+    SELECT
+      COUNT(*) AS count, (MIN(timestamp) - (NOW() - cast($2 AS interval))) AS retryAfter
+      FROM events
       WHERE ip_address=$1 AND timestamp > (NOW() - cast($2 AS interval))
   `;
 
   const p = query(sql, [ipAddress, windowSize]);
-  return p.then(r => r.rows[0].count >= maxCount)
+
+  return p.then(r => (
+    r.rows[0].count >= maxCount) ? r.rows[0].retryafter.seconds : null
+  );
 }
 
 
