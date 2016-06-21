@@ -46,9 +46,9 @@ function insertEvent(event, actor, ip, origin) {
 
 function shouldThrottle(ipAddress, windowSize, maxCount) {
   const sql = `
-    SELECT
-      COUNT(*) AS count, (MIN(timestamp) - (NOW() - cast($2 AS interval))) AS retryAfter
-      FROM events
+    SELECT 
+      COUNT(*) AS count, (MIN(timestamp) - (NOW() - cast($2 AS interval))) AS retryAfter 
+      FROM events 
       WHERE ip_address=$1 AND timestamp > (NOW() - cast($2 AS interval))
   `;
 
@@ -107,12 +107,18 @@ function streamQuery(minId, fn) {
 
 
 function transformEvent(row) {
-  return Object.assign({}, row.data, {
+  const obj = Object.assign({}, row.data, {
     id: row.id,
     timestamp: row.timestamp,
-    path: row.path,
-    actor: row.actor
-  })
+    path: row.path
+  });
+
+  if (row.actor) {
+    obj.actor = Object.assign({}, row.actor);
+    delete obj.actor.iat;
+  }
+
+  return obj;
 }
 
 

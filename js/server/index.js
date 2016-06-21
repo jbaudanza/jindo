@@ -87,12 +87,25 @@ app.post('/events', function(req, res, next) {
   const authorization = req.headers['authorization'];
   let actor;
   if (authorization) {
-    actor = jwt.verify(authorization, process.env['SECRET']);
+    const [authScheme, token] = authorization.split(' ');
+    console.log(authScheme.toUpperCase())
+    console.log(authScheme.toUpperCase() != 'BEARER')
+    if (authScheme.toUpperCase() != 'BEARER') {
+      res.status(403).json({error: 'Unsupported authorization scheme'});
+      return;
+    }
+
+    try {
+      actor = jwt.verify(token, process.env['SECRET']);
+    } catch(e) {
+      res.status(403).json({error: 'Invalid token'});
+      return;
+    }
   }
 
   // TODO:
   //  - do some validation on the body
-
+  
   database.shouldThrottle(req.ip, '10 seconds', 5).then(function(retryAfter) {
     if (retryAfter) {
       res
@@ -108,7 +121,7 @@ app.post('/events', function(req, res, next) {
         database.query('NOTIFY events');
       });
 
-      res.status(201).json(promise);
+      res.status(201).json(promise); 
     }
   }, next);
 });

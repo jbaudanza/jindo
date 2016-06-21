@@ -90,7 +90,7 @@ function publish(event, token) {
     };
 
     if (token) {
-      headers['Authorization'] = token;
+      headers['Authorization'] = "Bearer " + token;
     }
 
     return fetch('/events', {
@@ -149,4 +149,5 @@ const backend = {
 
 if (typeof window === 'object') {
   window.backend = backend;
+  window.jindo = backend;
 }
