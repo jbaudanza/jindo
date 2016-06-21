@@ -62,9 +62,10 @@ class ChatApp extends React.Component {
   }
 
   componentWillMount() {
-    this.props.backend.events
+    const messages = this.props.backend.events
         .scan((list, e) => list.concat(e), [])
-        .subscribe((list) => this.setState({list}));
+
+    messages.subscribe((list) => this.setState({list}));
 
     this.props.backend.connected.subscribe(connected => this.setState({connected}))
 
@@ -85,11 +86,8 @@ class ChatApp extends React.Component {
 
   onSubmit(event) {
     event.preventDefault();
-    const el = event.target.message;
-    if (el.value) {
-      this.props.backend.publish({message: el.value}, this.state.token);
-      el.value = '';
-    }
+    this.props.backend.publish({message: this.state.message}, this.state.token);
+    this.setState({message: ''});
   }
 
   onChange(event) {

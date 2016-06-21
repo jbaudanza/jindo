@@ -8,6 +8,14 @@ const conString = (
   "postgres://localhost/observables_development"
 );
 
+
+const INSERT_SQL = `
+  INSERT INTO events (timestamp, actor, ip_address, data, origin)
+  VALUES (NOW(), $1, $2, $3, $4)
+  RETURNING *
+`;
+
+
 function query(sql, args) {
   return new Promise(function(resolve, reject) {
     pg.connect(conString, function(err, client, done) {
@@ -27,6 +35,12 @@ function query(sql, args) {
       });
     });
   });
+}
+
+
+function insertEvent(event, actor, ip, origin) {
+  return query(INSERT_SQL, [actor, ip, event, origin])
+      .then((result) => transformEvent(result.rows[0]));
 }
 
 
@@ -93,4 +107,4 @@ function streamEvents(minId, origin) {
   ));
 }
 
-module.exports = {query, notifications, streamEvents};
+module.exports = {query, notifications, streamEvents, insertEvent};

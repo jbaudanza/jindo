@@ -6,7 +6,7 @@ window.jwtDecode = jwtDecode;
 window.Rx = Rx;
 
 const incommingMessages = new Rx.Subject();
-const connected = new Rx.Subject();
+const connected = new Rx.ReplaySubject(1);
 
 const events = incommingMessages
   .map(e => JSON.parse(event.data))
@@ -98,7 +98,7 @@ function publish(event, token) {
       credentials: 'include',
       body: JSON.stringify(event),
       headers: headers
-    })
+    }).then(r => r.json())
   });
 }
 
@@ -136,8 +136,11 @@ window.authCallback = function(object) {
   }
 };
 
+const replayEvents = new Rx.ReplaySubject(1000);
+events.subscribe(replayEvents);
+
 const backend = {
-  events: events,
+  events: replayEvents,
   publish: publish,
   connected: connected,
   authenticate: authenticate

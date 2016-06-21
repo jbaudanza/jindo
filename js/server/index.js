@@ -61,10 +61,6 @@ if (app.settings.env === 'development') {
 
 app.use(require('./auth'));
 
-const INSERT_SQL = `
-  INSERT INTO events (timestamp, actor, ip_address, data, origin)
-  VALUES (NOW(), $1, $2, $3, $4)
-`;
 
 
 app.post('/events', function(req, res) {
@@ -94,13 +90,14 @@ app.post('/events', function(req, res) {
   // TODO:
   //  - do some validation on the body
   //  - do some kind of request throttling
-  const promise = database.query(INSERT_SQL, [actor, req.ip, event, req.headers['origin']]);
+
+  const promise = database.insertEvent(event, actor, req.ip, req.headers['origin']);
 
   promise.then(function() {
     database.query('NOTIFY events');
   });
 
-  res.json(promise);
+  res.status(201).json(promise);
 });
 
 const server = app.listen((process.env['PORT'] || 5000), function() {
