@@ -44,6 +44,17 @@ function insertEvent(event, actor, ip, origin) {
 }
 
 
+function shouldThrottle(ipAddress, windowSize, maxCount) {
+  const sql = `
+    SELECT COUNT(*) AS count FROM events
+      WHERE ip_address=$1 AND timestamp > (NOW() - cast($2 AS interval))
+  `;
+
+  const p = query(sql, [ipAddress, windowSize]);
+  return p.then(r => r.rows[0].count >= maxCount)
+}
+
+
 const notifications = new Rx.Subject();
 
 pg.connect(conString, function(err, client, done) {
@@ -107,4 +118,4 @@ function streamEvents(minId, origin) {
   ));
 }
 
-module.exports = {query, notifications, streamEvents, insertEvent};
+module.exports = {query, notifications, streamEvents, insertEvent, shouldThrottle};

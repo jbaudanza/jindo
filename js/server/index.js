@@ -57,13 +57,16 @@ if (app.settings.env === 'development') {
   app.get('/chat.js', browserify('./js/chat/index.js', {
     transform: [['babelify', {presets: ["react"]}]]
   }));
+  app.get('/landing.js', browserify('./js/server/landing.js', {
+    transform: [['babelify', {presets: ["react"]}]]
+  }));
 }
 
 app.use(require('./auth'));
 
 
 
-app.post('/events', function(req, res) {
+app.post('/events', function(req, res, next) {
   if (!req.headers['origin']) {
     res.status(400).json({error: 'Origin header required'});
     return;
@@ -89,15 +92,22 @@ app.post('/events', function(req, res) {
 
   // TODO:
   //  - do some validation on the body
-  //  - do some kind of request throttling
 
-  const promise = database.insertEvent(event, actor, req.ip, req.headers['origin']);
+  database.shouldThrottle(req.ip, '10 seconds', 5).then(function(throttle) {
+    if (throttle) {
+      res.status(429).json({error: 'Too many requests'});
+    } else {
+      const promise = database.insertEvent(
+        event, actor, req.ip, req.headers['origin']
+      );
 
-  promise.then(function() {
-    database.query('NOTIFY events');
-  });
+      promise.then(function() {
+        database.query('NOTIFY events');
+      });
 
-  res.status(201).json(promise);
+      res.status(201).json(promise);
+    }
+  }, next);
 });
 
 const server = app.listen((process.env['PORT'] || 5000), function() {
