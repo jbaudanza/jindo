@@ -1,3 +1,5 @@
+"use strict";
+
 const jwt = require('jsonwebtoken');
 const fetch = require('node-fetch');
 const qs = require('qs');
