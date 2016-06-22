@@ -12,27 +12,38 @@ const app = new express.Router();
 
 
 const providersJson = require('../providers');
-const providers = {};
 
-for (let k in providersJson) {
-  providers[k] = Object.assign(
-    {
-      clientId: process.env[`${k.toUpperCase()}_CLIENT_ID`],
-      redirectUri: `http://localhost:5000/oauth-callback/${k}`
-    },
-    providersJson[k]
-  )
+function getProviders(req) {
+  const hostname = req.get('host');
+  const providers = {};
+
+  for (let k in providersJson) {
+    providers[k] = Object.assign(
+      {
+        clientId: process.env[`${k.toUpperCase()}_CLIENT_ID`],
+        redirectUri: `${req.protocol}://${hostname}/oauth-callback/${k}`
+      },
+      providersJson[k]
+    )
+  }
+
+  return providers;
 }
 
 
 app.get('/providers.json', function(req, res) {
-  res.json(Object.assign({csrf: req.csrfToken()}, providers));
+  res.json(
+    Object.assign(
+      {csrf: req.csrfToken()},
+      getProviders(req)
+    )
+  );
 });
 
 
 const tokens = new Tokens();
 
-app.get('/oauth-callback/:provider', function(req, res) {
+app.get('/oauth-callback/:provider', function(req, res, next) {
   if (!req.query['code']) {
     res.status('400').send('Missing oauth code');
     return;
@@ -42,6 +53,8 @@ app.get('/oauth-callback/:provider', function(req, res) {
     res.status('403').send('CSRF failure');
     return;    
   }
+
+  const providers = getProviders(req);
 
   const provider = providers[req.params.provider];
   const clientSecret = process.env[`${req.params.provider.toUpperCase()}_CLIENT_SECRET`];
@@ -60,28 +73,38 @@ app.get('/oauth-callback/:provider', function(req, res) {
   };
 
   // TODO: check for auth errors.
-  // TODO: we should probably store this in some stream somewhere
-  const accessTokenResponse = fetch(provider.tokenUrl, {
+
+  //
+  // Fetch access token
+  //
+  fetch(provider.tokenUrl, {
     method: 'POST',
     body: qs.stringify(body),
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-  }).then(res => res.json());
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json'
+    }
+  }).then(res => res.json()).then(function(response) {
 
-  const profileResponse = accessTokenResponse.then(function(response) {
+    //
+    // Then fetch the profile
+    //
     return fetch(provider.profileUrl, {
-      headers: {'Authorization': 'OAuth ' + response['access_token']}
+      headers: {'Authorization': 'OAuth2 ' + response['access_token']}
     }).then(r => r.json())
-  });
+  }).then(function(profile) {
+    if (!('id' in profile)) {
+      throw "Unable to fetch profile information";
+    }
 
-  profileResponse.then(function(profile) {
     const identity = {
-      provider: 'soundcloud',
+      provider: req.params.provider,
       userId: profile['id']
     };
     const token = jwt.sign(identity, process.env['SECRET']);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(responseHtml(token));
-  })
+  }, next);
 });
 
 

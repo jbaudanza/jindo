@@ -105,9 +105,16 @@ function publish(event, token) {
 
 let authFunc = null;
 
-function authenticate() {
+function authenticate(providerName) {
+  if (!providerName)
+    providerName = 'github';
+
   return providersPromise.then(function(providers) {
-    const provider = providers['soundcloud'];
+    if (!(providerName in providers)) {
+      throw "Unknown authentication provider"
+    }
+
+    const provider = providers[providerName];
 
     const url = provider.authUrl + "?" + qs.stringify({
         client_id: provider.clientId,

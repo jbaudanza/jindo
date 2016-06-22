@@ -8,10 +8,10 @@ function TabItem(props) {
   let className;
 
   if (props.active) {
-    style = {display: 'block'};
+    style = {display: 'block', minHeight: '322px'};
     className = 'is-active tab-link';
   } else {
-    style = {display: 'none'};
+    style = {display: 'none', minHeight: '322px'};
     className = 'tab-link'
   }
 
@@ -232,7 +232,7 @@ function Doc(props) {
       </p>
 
       <p>
-        This is a preview release. There are many more exciting features coming
+        This is a preview release. There are more exciting features coming
         soon. For example:
       </p>
 
