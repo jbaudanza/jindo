@@ -69,7 +69,17 @@ class ChatApp extends React.Component {
 
     this.props.backend.connected.subscribe(connected => this.setState({connected}))
 
-    // TODO: this should update
+    this.tick();
+
+    this.timerId = setInterval(this.tick.bind(this), 30000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.timerId);
+    delete this.timerId;
+  }
+
+  tick() {
     this.setState({now: new Date()});
   }
 
