@@ -101,7 +101,8 @@ const authJs =
 
 const chatJs = 
 `ReactDOM.render(
-  React.createElement(ChatApp, {backend: jindo}), output
+  React.createElement(ChatApp, {backend: jindo}),
+  output
 );
 `;
 

@@ -103,6 +103,24 @@ class ChatApp extends React.Component {
       avatar: {
         height: 40,
         width: 40
+      },
+      compose: {
+        wrapper: {
+          display: 'flex',
+          marginTop: '5px'
+        },
+        input: {
+          display: 'block',
+          width: '100%',
+          boxSizing: 'border-box'
+        },
+        sendButton: {
+          'float': 'right'
+        },
+        form: {
+          flex: '1',
+          marginLeft: '5px'
+        }
       }
     };
 
@@ -116,11 +134,11 @@ class ChatApp extends React.Component {
               </ul>
               {
                 this.state.profile ? (
-                  <div>
+                  <div style={styles.compose.wrapper}>
                     <img className='avatar' src={this.state.profile.avatar_url} style={styles.avatar} />
-                    <form onSubmit={this.onSubmit}>
-                      <input name="message" type="text" onChange={this.onChange} value={this.state.message} />
-                      <input type="submit" value="send" disabled={!this.state.message.trim()} />
+                    <form style={styles.compose.form} onSubmit={this.onSubmit}>
+                      <input style={styles.compose.input} type="text" onChange={this.onChange} value={this.state.message} />
+                      <input style={styles.compose.sendButton} type="submit" value="send" disabled={!this.state.message.trim()} />
                     </form>
                   </div>
                 ) : (
