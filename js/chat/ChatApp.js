@@ -73,7 +73,8 @@ class ChatApp extends React.Component {
     this.setState({now: new Date()});
   }
 
-  onClickLogin() {
+  onClickLogin(event) {
+    event.preventDefault();
     const tokenPromise = this.props.backend.authenticate();
 
     tokenPromise.then(token => this.setState({token}));

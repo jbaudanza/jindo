@@ -88,8 +88,6 @@ app.post('/events', function(req, res, next) {
   let actor;
   if (authorization) {
     const [authScheme, token] = authorization.split(' ');
-    console.log(authScheme.toUpperCase())
-    console.log(authScheme.toUpperCase() != 'BEARER')
     if (authScheme.toUpperCase() != 'BEARER') {
       res.status(403).json({error: 'Unsupported authorization scheme'});
       return;

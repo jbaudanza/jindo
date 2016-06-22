@@ -91,12 +91,13 @@ jindo.events
     .subscribe( 
         list => output.innerText =
            list.map(JSON.stringify).join("\\n")
-    )`;
+    );
+`;
 
 const authJs =
 `jindo.authenticate().then(
   token => output.innerText = token
-)
+);
 `;
 
 const chatJs = 
@@ -117,19 +118,32 @@ function Doc(props) {
       </p>
 
       <p>
-        To use jindo in your Javascript app, all you need to do is include
-        the jindo script tag in your document.
+        To use jindo in your Javascript app, include the jindo script tag in
+        your document.
       </p>
 
       <code>
-        &lt;script src="https://jindo.io/client.js"&gt;&lt;script&gt;
+        &lt;script src="https://jindo.io/client.js"&gt;&lt;/script&gt;
       </code>
 
       <p>
         This script tag will create an <a href="https://zenparsing.github.io/es-observable/">ECMAScript Observable</a> object 
-        called <b>jindo.events</b> in your document. An Observable is kind of
-        like a Promise that keeps delivering new values. The jindo observable is
-        shared between any client that is running on the same origin domain.
+        called <b>jindo.events</b> in your document. An Observable is an
+        abstraction that works sort of like a promise, except it keeps delivering
+        new values over time.
+      </p>
+
+      <p>
+        When a client subscribes the the jindo observable, it will receive
+        notifications whenever a new event is published to the jindo API.
+        All clients that running on the same origin domain will by synchronized
+        to the same jindo observable.
+      </p>
+
+      <p>
+      Subscribing to the jindo observable to replay all the events that have
+      ever happened on that observable. This allows you to reduce the event
+      steam into the current state of your reactive application.
       </p>
 
       <CodeSnippit code={reduceJs} />
