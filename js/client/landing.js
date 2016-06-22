@@ -66,7 +66,7 @@ const publishJs =
 from the previous snippit automatically updates
 */
 jindo.publish({message: 'Hello Jindo'})
-       .then(r => output.innerText = 
+     .then(r => output.innerText =
             JSON.stringify(r));
 `;
 
@@ -76,7 +76,7 @@ const publishAuthJs =
     an "actor" attribute. */
 var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlciI6InNvdW5kY2xvdWQiLCJ1c2VySWQiOjE3Mzg0LCJpYXQiOjE0NjY1NDU4MTV9.VGghq5eCqPyI95yTkqWvUrYtYkHWboYG7FsoC3RDMQQ"
 jindo.publish({message: 'Hello JWT'}, token)
-       .then(r => output.innerText = 
+     .then(r => output.innerText =
             JSON.stringify(r));
 `;
 
@@ -86,9 +86,9 @@ const reduceJs =
     jindo observable on this domain into a
     dynamically updated list of JSON objects */
 jindo.events
-    .scan((list, e) => list.concat(e), [])
-    .map(list => list.slice(-10))
-    .subscribe( 
+     .scan((list, e) => list.concat(e), [])
+     .map(list => list.slice(-10))
+     .subscribe(
         list => output.innerText =
            list.map(JSON.stringify).join("\\n")
     );

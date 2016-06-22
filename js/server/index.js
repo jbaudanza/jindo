@@ -57,7 +57,7 @@ if (app.settings.env === 'development') {
   app.get('/chat.js', browserify('./js/chat/index.js', {
     transform: [['babelify', {presets: ["react"]}]]
   }));
-  app.get('/landing.js', browserify('./js/server/landing.js', {
+  app.get('/landing.js', browserify('./js/client/landing.js', {
     transform: [['babelify', {presets: ["react"]}]]
   }));
 }
