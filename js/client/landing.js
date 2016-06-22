@@ -2,11 +2,40 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 const ChatApp = require('../chat/ChatApp');
 
+
+function TabItem(props) {
+  let style;
+  let className;
+
+  if (props.active) {
+    style = {display: 'block'};
+    className = 'is-active tab-link';
+  } else {
+    style = {display: 'none'};
+    className = 'tab-link'
+  }
+
+  function onClick(event) {
+    event.preventDefault();
+    props.onActivate();
+  }
+
+  return (
+    <li className="tab-header-and-content">
+      <a href="#" onClick={onClick} className={className}>{props.title}</a>
+      <div className="tab-content" style={style}>
+        {props.children}
+      </div>
+    </li>
+  );
+}
+
+
 class CodeSnippit extends React.Component {
   constructor() {
     super();
     this.run = this.run.bind(this);
-    this.state = {hasRun: false, running: false};
+    this.state = {hasRun: false, running: false, tab: 'source'};
   }
 
   run() {
@@ -28,7 +57,7 @@ class CodeSnippit extends React.Component {
         window.alert(e)
       }
 
-      this.setState({hasRun: true, running: false});
+      this.setState({hasRun: true, running: false, tab: 'output'});
     }).bind(this), 500);
   }
 
@@ -43,19 +72,38 @@ class CodeSnippit extends React.Component {
     });
   }
 
+  setTab(tab) {
+    console.log(tab)
+    this.setState({tab});
+  }
+
   render() {
     const style = {
       width: '100%',
-      height: '200px'
+      height: '220px',
+      marginBottom: '0.75em'
     };
+
+    function propsForTab(tab) {
+      return {
+        active: this.state.tab === 'source',
+        onActivate: this.setTab.bind(this, 'source')
+      };
+    }
 
     return (
       <div className='code-snippit'>
-        <div style={style} ref='editor'></div>
-        <button onClick={this.run} disabled={this.state.running}>
-          {this.state.hasRun ? 'Re-Run' : 'Run'}
-        </button>
-        <div ref='output'></div>
+        <ul className="accordion-tabs">
+          <TabItem title="Source" active={this.state.tab === 'source'} onActivate={this.setTab.bind(this, 'source')}>
+            <div ref="editor" style={style} />
+            <button onClick={this.run} disabled={this.state.running}>
+              {this.state.hasRun ? 'Re-Run' : 'Run'}
+            </button>
+          </TabItem>
+          <TabItem title="Output" active={this.state.tab === 'output'} onActivate={this.setTab.bind(this, 'output')}>
+            <div ref="output" />
+          </TabItem>
+        </ul>
       </div>
     )
   }
@@ -188,21 +236,20 @@ function Doc(props) {
         soon. For example:
       </p>
 
-      <p>
       <ul style={{listStyleType: 'circle', paddingLeft: '50px'}}>
         <li>Time traveling</li>
         <li>Private observables</li>
         <li>Server side observables</li>
       </ul>
-      </p>
 
       <p>
         Leave your email to get updates.
-        <form>
-          <input name="email" />
-          <input type="submit" />
-        </form>
       </p>
+
+      <form>
+        <input name="email" />
+        <input type="submit" />
+      </form>
     </div>
   )
 }
