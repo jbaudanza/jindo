@@ -78,6 +78,11 @@ const providersPromise = (
   fetch('/providers.json', {credentials: 'include'}).then(r => r.json())
 );
 
+let providers = null;
+providersPromise.then(function(value) {
+  providers = value;
+});
+
 
 function publish(event, token) {
   // TODO: Kind of weird to put the csrf token on the providers list
@@ -107,29 +112,30 @@ function authenticate(providerName) {
   if (!providerName)
     providerName = 'github';
 
-  return providersPromise.then(function(providers) {
-    if (!(providerName in providers)) {
-      throw "Unknown authentication provider"
-    }
+  if (!providers)
+    return;
 
-    const provider = providers[providerName];
+  if (!(providerName in providers)) {
+    throw "Unknown authentication provider"
+  }
 
-    const url = provider.authUrl + "?" + qs.stringify({
-        client_id: provider.clientId,
-        redirect_uri: provider.redirectUri,
-        response_type: 'code',
-        state: providers.csrf
-    });
+  const provider = providers[providerName];
 
-    const popup = window.open(url, 'login', 'width=620,height=600');
+  const url = provider.authUrl + "?" + qs.stringify({
+      client_id: provider.clientId,
+      redirect_uri: provider.redirectUri,
+      response_type: 'code',
+      state: providers.csrf
+  });
 
-    return new Promise(function(resolve, reject) {
-      authFunc = function(object) {
-        popup.close();
-        // TODO: check for errors here
-        resolve(object);
-      };
-    });
+  const popup = window.open(url, 'login', 'width=620,height=600');
+
+  return new Promise(function(resolve, reject) {
+    authFunc = function(object) {
+      popup.close();
+      // TODO: check for errors here
+      resolve(object);
+    };
   });
 }
 
