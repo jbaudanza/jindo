@@ -43,22 +43,18 @@ class CodeSnippit extends React.Component {
     this.refs.output.innerHTML = '';
 
     const code = this.editor.getValue();
-    this.setState({running: true});
 
-    setTimeout((function() {
-      this.refs.output.innerHTML = '';
-      const output = document.createElement('pre');
-      output.className = 'output';
-      this.refs.output.appendChild(output);
+    const output = document.createElement('pre');
+    output.className = 'output';
+    this.refs.output.appendChild(output);
 
-      try {
-        eval(code);
-      } catch(e) {
-        window.alert(e)
-      }
+    try {
+      eval(code);
+    } catch(e) {
+      window.alert(e)
+    }
 
-      this.setState({hasRun: true, running: false, tab: 'output'});
-    }).bind(this), 500);
+    this.setState({hasRun: true, running: false, tab: 'output'});
   }
 
   componentDidMount() {
@@ -121,7 +117,7 @@ jindo.publish({message: 'Hello Jindo'})
 const publishAuthJs = 
 `/* Notice how this event will get published with
     an "actor" attribute. */
-var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlciI6InNvdW5kY2xvdWQiLCJ1c2VySWQiOjE3Mzg0LCJpYXQiOjE0NjY1NDU4MTV9.VGghq5eCqPyI95yTkqWvUrYtYkHWboYG7FsoC3RDMQQ"
+var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlciI6ImdpdGh1YiIsInVzZXJJZCI6MzU5MTQsImlhdCI6MTQ2NjcxNjIyNH0.9ghOBvvax7fx0S9GOUbzlwWcf7mFxaUfWN1C0DaW_0Q";
 jindo.publish({message: 'Hello JWT'}, token)
      .then(r => output.innerText =
             JSON.stringify(r));
