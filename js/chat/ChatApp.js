@@ -242,9 +242,11 @@ class ChatApp extends React.Component {
                     </form>
                   </div>
                 ) : (
-                  <a href="#" onClick={this.onClickLogin}>
-                    login
-                  </a>
+                  <div style={{textAlign: 'center', paddingTop: '5px'}}>
+                    <a href="#" onClick={this.onClickLogin} className='login-button'>
+                      login with GitHub
+                    </a>
+                  </div>
                 )
               }
             </div>

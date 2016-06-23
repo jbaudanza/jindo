@@ -55,6 +55,37 @@ code, .code-snippit {
   margin: 0 auto;
 }
 
+.login-button {
+  display: inline-block;
+  box-sizing: content-box;
+  background: linear-gradient(#333,#444);
+  color: white;
+  text-decoration: none;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  padding-right: 12px;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &:before {
+    background-image: url('/GitHub-Mark-Light-64px.png');
+    background-size: 24px 24px;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: block;
+    width: 45px;
+    height: 32px;
+    content: ' ';
+    border-right: 1px solid #555;
+    float: left;
+    margin-right: 12px;
+  }
+}
+
 .accordion-tabs {
   $base-border-color: #dcdcdc !default;
   $base-border-radius: 3px !default;
