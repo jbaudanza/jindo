@@ -3,7 +3,46 @@ const React = require('react');
 const distanceOfTimeInWords = require('./distanceOfTimeInWords');
 
 function fetchProfile(identity) {
-  return fetch("http://api.soundcloud.com/users/" + identity.userId  + "?client_id=929237b25472ca25f7977cef36ee6808").then(r => r.json());
+  if (!identity.provider || !identity.userId)
+    return;
+
+  switch(identity.provider) {
+    case 'soundcloud':
+      return fetch("http://api.soundcloud.com/users/" + identity.userId  + "?client_id=929237b25472ca25f7977cef36ee6808")
+        .then(r => r.json())
+        .then(
+          (profile) => ({
+            avatarUrl: profile['avatar_url'],
+            profileUrl: profile['permalink_url'],
+            name: profile['full_name']
+          })
+        )
+    case 'github':
+      return fetch(`https://api.github.com/user/${identity.userId}`)
+        .then(r => r.json())
+        .then(
+          (profile) => ({
+            avatarUrl: profile['avatar_url'],
+            profileUrl: profile['url'],
+            name: profile['name']
+          })
+        )
+  }
+}
+
+
+function fetchProfileWithCache(identity, cache) {
+  const key = identityKey(identity);
+  if (!cache.hasOwnProperty(key)) {
+    cache[key] = fetchProfile(identity);
+  }
+  return cache[key];
+}
+
+function identityKey(identity) {
+  if (identity) {
+    return identity.provider + "-" + identity.userId;
+  }
 }
 
 
@@ -30,12 +69,20 @@ class ChatMessage extends React.Component {
       }
     };
 
+    const key = identityKey(this.props.actor);
+    let avatarUrl;
+    let name;
+    if (key in this.props.users) {
+      avatarUrl = this.props.users[key].avatarUrl;
+      name = this.props.users[key].name;
+    }
+
     return (
       <li style={styles.row}>
-        <img className="avatar" style={styles.avatar} src="https://i1.sndcdn.com/avatars-000000172116-6885ee-large.jpg" />
+        <img className="avatar" style={styles.avatar} src={avatarUrl} />
         <div style={{flex: 1}}>
           <div className="header">
-            <b><a href="#">Jon Baudanza</a></b>
+            <b><a href="#">{name}</a></b>
             <span className="timestamp" style={styles.timestamp}>
               {distanceOfTimeInWords(this.props.now - new Date(this.props.timestamp))}
             </span>
@@ -50,10 +97,37 @@ class ChatMessage extends React.Component {
 }
 
 
+function unique(arr, transform) {
+  const u = {}, a = [];
+  if (!transform)
+    transform = ((x) => x)
+
+  for(let i = 0, l = arr.length; i < l; ++i) {
+      const v = transform(arr[i]);
+      if(!u.hasOwnProperty(v)) {
+          a.push(arr[i]);
+          u[v] = 1;
+      }
+  }
+
+  return a;
+}
+
+
+function uniqueActors(events) {
+  return unique(
+    events
+      .filter(e => e.actor && e.actor.userId && e.actor.provider)
+      .map(e => e.actor),
+    identityKey
+  )
+}
+
+
 class ChatApp extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {list: [], connected: false, message: ''};
+    this.state = {list: [], connected: false, message: '', users: {}};
 
     this.onSubmit = this.onSubmit.bind(this);
     this.onClickLogin = this.onClickLogin.bind(this);
@@ -64,6 +138,19 @@ class ChatApp extends React.Component {
     const messages = this.props.backend.events
         .scan((list, e) => list.concat(e), [])
         .map(list => list.slice(-10))
+
+    const profileCache = {};
+
+    messages
+      .map(uniqueActors)
+      .subscribe((list) => {
+        list.forEach((function(identity) {
+          fetchProfileWithCache(identity, profileCache).then((function(profile) {
+            this.state.users[identityKey(identity)] = profile;
+            this.setState({users: this.state.users})
+          }).bind(this));
+        }).bind(this));
+      });
 
     messages.subscribe((list) => this.setState({list}));
 
@@ -141,12 +228,12 @@ class ChatApp extends React.Component {
           this.state.connected ? (
             <div>
               <ul style={styles.list}>
-                {this.state.list.map(e => <ChatMessage key={e.id} now={this.state.now} {...e} />)}
+                {this.state.list.map(e => <ChatMessage key={e.id} users={this.state.users} now={this.state.now} {...e} />)}
               </ul>
               {
                 this.state.profile ? (
                   <div style={styles.compose.wrapper}>
-                    <img className='avatar' src={this.state.profile.avatar_url} style={styles.avatar} />
+                    <img className='avatar' src={this.state.profile.avatarUrl} style={styles.avatar} />
                     <form style={styles.compose.form} onSubmit={this.onSubmit}>
                       <input style={styles.compose.input} type="text" onChange={this.onChange} value={this.state.message} />
                       <input style={styles.compose.sendButton} type="submit" value="send" disabled={!this.state.message.trim()} />

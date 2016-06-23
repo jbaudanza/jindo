@@ -73,7 +73,6 @@ class CodeSnippit extends React.Component {
   }
 
   setTab(tab) {
-    console.log(tab)
     this.setState({tab});
   }
 
