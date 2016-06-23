@@ -2,6 +2,12 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 const ChatApp = require('../chat/ChatApp');
 
+const babel = require('babel-core');
+const presets = [
+  require('babel-preset-react'),
+  require('babel-preset-es2015'),
+];
+
 
 function TabItem(props) {
   let style;
@@ -42,14 +48,15 @@ class CodeSnippit extends React.Component {
     // Destroy old output if there already was one.
     this.refs.output.innerHTML = '';
 
-    const code = this.editor.getValue();
+    const rawCode = this.editor.getValue();
+    const transformed = babel.transform(rawCode, {presets: presets});
 
     const output = document.createElement('pre');
     output.className = 'output';
     this.refs.output.appendChild(output);
 
     try {
-      eval(code);
+      eval(transformed.code);
     } catch(e) {
       window.alert(e)
     }
@@ -145,7 +152,7 @@ const authJs =
 
 const chatJs = 
 `ReactDOM.render(
-  React.createElement(ChatApp, {backend: jindo}),
+  &lt;ChatApp backend={jindo} /&gt;,
   output
 );
 `;
