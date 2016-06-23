@@ -187,9 +187,9 @@ function Doc(props) {
       </p>
 
       <p>
-        Subscribing to the jindo observable to replay all the events that have
+        Subscribing to the jindo observable will replay all the events that have
         ever happened on that observable. This allows you to reduce the event
-        steam into the current state of your reactive application.
+        stream into the current state of your reactive application.
       </p>
 
       <CodeSnippit code={reduceJs} />
