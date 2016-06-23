@@ -3,11 +3,11 @@ function distanceOfTimeInWords(distanceInMilliseconds) {
     return ''
   }
 
-  distanceInMinutes = Math.round(Math.abs(distanceInMilliseconds / 60000));
+  const distanceInMinutes = Math.round(Math.abs(distanceInMilliseconds / 60000));
 
-  if (distanceInMinutes == 0) {
+  if (distanceInMinutes === 0) {
     return "less than a minute";
-  } else if (distanceInMinutes == 1) {
+  } else if (distanceInMinutes === 1) {
     return "1 minute";
   } else if (distanceInMinutes < 45) {
     return distanceInMinutes + " minutes";
