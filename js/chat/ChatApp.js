@@ -23,7 +23,7 @@ function fetchProfile(identity) {
         .then(
           (profile) => ({
             avatarUrl: profile['avatar_url'],
-            profileUrl: profile['url'],
+            profileUrl: profile['html_url'],
             name: profile['name']
           })
         )
@@ -72,8 +72,10 @@ class ChatMessage extends React.Component {
     const key = identityKey(this.props.actor);
     let avatarUrl;
     let name;
+    let profileUrl;
     if (key in this.props.users) {
       avatarUrl = this.props.users[key].avatarUrl;
+      profileUrl = this.props.users[key].profileUrl;
       name = this.props.users[key].name;
     }
 
@@ -82,7 +84,7 @@ class ChatMessage extends React.Component {
         <img className="avatar" style={styles.avatar} src={avatarUrl} />
         <div style={{flex: 1}}>
           <div className="header">
-            <b><a href="#">{name}</a></b>
+            <b><a href={profileUrl}>{name}</a></b>
             <span className="timestamp" style={styles.timestamp}>
               {distanceOfTimeInWords(this.props.now - new Date(this.props.timestamp))}
             </span>
