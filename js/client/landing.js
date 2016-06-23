@@ -177,7 +177,7 @@ function Doc(props) {
       </p>
 
       <p>
-        When a client subscribes the the jindo observable, the application will receive
+        When a client subscribes to the jindo observable, the application will receive
         notifications whenever a new event is published to the jindo API.
         All clients that running on the same origin domain will by synchronized
         to the same jindo observable.
