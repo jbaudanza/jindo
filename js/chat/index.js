@@ -1,3 +1,5 @@
+require('whatwg-fetch');
+
 const React = require('react');
 const ReactDOM = require('react-dom');
 const ChatApp = require('./ChatApp');
