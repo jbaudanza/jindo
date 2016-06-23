@@ -1,4 +1,5 @@
 const React = require('react');
+const jwtDecode = require('jwt-decode');
 
 const distanceOfTimeInWords = require('./distanceOfTimeInWords');
 

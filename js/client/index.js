@@ -2,7 +2,6 @@ require('whatwg-fetch');
 
 const Rx = require('rxjs');
 const qs = require('qs');
-const jwtDecode = require('jwt-decode');
 
 const incommingMessages = new Rx.Subject();
 const connected = new Rx.ReplaySubject(1);
