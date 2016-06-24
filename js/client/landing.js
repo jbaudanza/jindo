@@ -38,10 +38,16 @@ function TabItem(props) {
 
 
 class CodeSnippit extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.run = this.run.bind(this);
-    this.state = {hasRun: false, running: false, tab: 'source'};
+    let tab;
+    if (props.run) {
+      tab = 'output';
+    } else {
+      tab = 'source';
+    }
+    this.state = {hasRun: false, running: false, tab: tab};
   }
 
   run() {
@@ -73,6 +79,10 @@ class CodeSnippit extends React.Component {
       fontFamily: "Source Code Pro",
       fontSize: '16px'
     });
+
+    if (this.props.run) {
+      this.run();
+    }
   }
 
   setTab(tab) {
@@ -158,6 +168,42 @@ const chatJs =
 );
 `;
 
+function escape(str) {
+  return str
+    .replace(/\n/g, '')
+    .replace(/>\s+</g, '><')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+const subscribeHTML = `
+<form>
+  <b>Interested? Join our mailing list</b>
+  <input name="email" placeholder="you@example.com">
+  <input name="subscribe" type="submit" value="subscribe">
+  <p>
+    <i>p.s.: checkout the source for this form</i>
+  </p>
+</form>`;
+
+const subscribeJs =
+`output.innerHTML = '${escape(subscribeHTML)}';
+const form = output.getElementsByTagName('form')[0]
+form.onsubmit = function(event) {
+  event.preventDefault();
+  const email = form.email.value;
+  if (email) {
+    jindo.publish({
+      type: 'subscribe',
+      email: email
+    }).then(thankYou)
+  }
+};
+function thankYou() {
+  output.innerHTML = "<h1>Thank you! We'll be in touch!</h1>"
+}
+`
+
 function Doc(props) {
 
   return (
@@ -241,14 +287,8 @@ function Doc(props) {
         <li>Server side observables</li>
       </ul>
 
-      <p>
-        Leave your email to get updates.
-      </p>
+      <CodeSnippit code={subscribeJs} run={true} />
 
-      <form>
-        <input name="email" />
-        <input type="submit" />
-      </form>
     </div>
   )
 }
