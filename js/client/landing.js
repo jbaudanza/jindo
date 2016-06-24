@@ -68,7 +68,7 @@ class CodeSnippit extends React.Component {
     this.refs.editor.innerHTML = this.props.code;
     this.editor = ace.edit(this.refs.editor);
     this.editor.setTheme("ace/theme/monokai");
-    this.editor.getSession().setMode("ace/mode/javascript");
+    this.editor.getSession().setMode("ace/mode/jsx");
     this.editor.setOptions({
       fontFamily: "Source Code Pro",
       fontSize: '16px'
@@ -112,8 +112,9 @@ class CodeSnippit extends React.Component {
 }
 
 const publishJs = 
-`/* Notice how when you run this snippit, the output
-from the previous snippit automatically updates
+`/* Notice how when you run this snippit, the
+    output from the previous snippit
+    automatically updates
 */
 jindo.publish({message: 'Hello Jindo'})
      .then(r => output.innerText =
@@ -122,8 +123,8 @@ jindo.publish({message: 'Hello Jindo'})
 
 
 const publishAuthJs = 
-`/* Notice how this event will get published with
-    an "actor" attribute. */
+`/* Notice how this event will get published
+    with an "actor" attribute. */
 var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlciI6ImdpdGh1YiIsInVzZXJJZCI6MzU5MTQsImlhdCI6MTQ2NjcxNjIyNH0.9ghOBvvax7fx0S9GOUbzlwWcf7mFxaUfWN1C0DaW_0Q";
 jindo.publish({message: 'Hello JWT'}, token)
      .then(r => output.innerText =
