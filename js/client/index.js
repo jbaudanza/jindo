@@ -7,7 +7,7 @@ const incommingMessages = new Rx.Subject();
 const connected = new Rx.ReplaySubject(1);
 
 const events = incommingMessages
-  .map(e => JSON.parse(event.data))
+  .map(e => JSON.parse(e.data))
   .flatMap(e => e);
 
 let lastId = 0;

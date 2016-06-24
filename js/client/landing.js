@@ -117,7 +117,7 @@ const publishJs =
     automatically updates
 */
 jindo.publish({message: 'Hello Jindo'})
-     .then(r => output.innerText =
+     .then(r => output.textContent =
             JSON.stringify(r));
 `;
 
@@ -127,7 +127,7 @@ const publishAuthJs =
     with an "actor" attribute. */
 var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlciI6ImdpdGh1YiIsInVzZXJJZCI6MzU5MTQsImlhdCI6MTQ2NjcxNjIyNH0.9ghOBvvax7fx0S9GOUbzlwWcf7mFxaUfWN1C0DaW_0Q";
 jindo.publish({message: 'Hello JWT'}, token)
-     .then(r => output.innerText =
+     .then(r => output.textContent =
             JSON.stringify(r));
 `;
 
@@ -140,14 +140,14 @@ jindo.events
      .scan((list, e) => list.concat(e), [])
      .map(list => list.slice(-10))
      .subscribe(
-        list => output.innerText =
+        list => output.textContent =
            list.map(JSON.stringify).join("\\n")
     );
 `;
 
 const authJs =
 `jindo.authenticate().then(
-  token => output.innerText = token
+  token => output.textContent = token
 );
 `;
 
