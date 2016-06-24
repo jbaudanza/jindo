@@ -139,6 +139,7 @@ class ChatApp extends React.Component {
 
   componentWillMount() {
     const messages = this.props.backend.events
+        .filter(e => e.message && e.actor)
         .scan((list, e) => list.concat(e), [])
         .map(list => list.slice(-10))
 
