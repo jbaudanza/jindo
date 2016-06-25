@@ -39,16 +39,8 @@ app.use(require('body-parser').json());
 app.use(cookieParser(process.env['SECRET']));
 app.use(csrfProtection);
 
-//
-// Ensure TLS is used in production
-//
 if (app.settings.env === 'production') {
-  app.use(function(req, res, next) {
-    if (req.headers['x-forwarded-proto'] == 'https')
-      next();
-    else
-      res.redirect("https://" + req.headers.host + req.url);
-  });
+  app.use(require('./redirect'));
 }
 
 const browserifyOptions = {
