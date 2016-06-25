@@ -8,6 +8,17 @@ const presets = [
   require('babel-preset-es2015'),
 ];
 
+const publicKey = `
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCWp0c1AY/2/vINo9hcst0wemQx
+OHit5y35u4k9uzRcqv9xXsCxLOIJxlQY+TR0c5IC5z7VUNS23QAjYeq5VADf/wFO
+Rnb+Fej/W0yq2CP7+vKwkIPquWlXEdtnnB1NU/ZJwITb2BKlS4JiuASClbEyanbI
+NrAIBtaY6C/iE29TWwIDAQAB
+-----END PUBLIC KEY-----
+`;
+
+const {JSEncrypt} = require('jsencrypt');
+
 
 function TabItem(props) {
   let style;
@@ -193,9 +204,12 @@ form.onsubmit = function(event) {
   event.preventDefault();
   const email = form.email.value;
   if (email) {
+    const encrypt = new JSEncrypt();
+    encrypt.setPublicKey(publicKey);
+    const encrypted = encrypt.encrypt(email);
     jindo.publish({
       type: 'subscribe',
-      email: email
+      email: encrypted
     }).then(thankYou)
   }
 };
