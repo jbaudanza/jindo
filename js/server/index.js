@@ -39,10 +39,6 @@ app.use(require('body-parser').json());
 app.use(cookieParser(process.env['SECRET']));
 app.use(csrfProtection);
 
-if (app.settings.env === 'production') {
-  app.use(require('./redirect'));
-}
-
 const browserifyOptions = {
   transform: [['babelify', {presets: ["react", 'es2015']}]]
 };
