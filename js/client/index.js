@@ -38,9 +38,22 @@ const onlineEvent = Rx.Observable.fromEvent(window, 'online');
 let failures = 0;
 
 
+function getJindoHost() {
+  const tags = document.getElementsByTagName('script');
+  for (let i=0; i<tags.length; i++) {
+    const tag = tags[i];
+    const match = tag.src.match(/(https?:)\/\/([\w\.\:\d]+)\/client\.js$/)
+    if (match) {
+      return [match[1], match[2]];
+    }
+  }
+  return ['https', "www.jindo.io"];
+}
+
 function openSocket() {
-  const protocol = document.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const endpoint = `${protocol}//${document.location.hostname}:${document.location.port}`;
+  const [httpProtocol, hostname] = getJindoHost()
+  const protocol = httpProtocol === 'https:' ? 'wss:' : 'ws:';
+  const endpoint = `${protocol}//${hostname}`;
 
   const socket = new WebSocket(endpoint);
   const subscription = Rx.Observable.fromEvent(socket, 'message').subscribe(incommingMessages);
@@ -96,7 +109,9 @@ function publish(event, token) {
       headers['Authorization'] = "Bearer " + token;
     }
 
-    return fetch('/events', {
+    const prefix = getJindoHost().join('//');
+
+    return fetch(prefix + '/events', {
       method: 'POST',
       credentials: 'include',
       body: JSON.stringify(event),
