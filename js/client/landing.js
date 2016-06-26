@@ -224,19 +224,15 @@ function Doc(props) {
     <div style={{paddingTop: '0.75em'}}>
 
       <p>
-        <b>jindo.io</b> a drop-in reactive backend for Javascript applications.
+        <b>jindo.io</b> is a drop-in reactive backend for Javascript applications.
       </p>
 
       <p>
         To use jindo, simply include the script tag in your document.
       </p>
 
-      <code>
-        &lt;script src="https://jindo.io/client.js"&gt;&lt;/script&gt;
-      </code>
-
       <p>
-        This script tag will create an <a href="https://zenparsing.github.io/es-observable/">ECMAScript Observable</a> object 
+        Jindo will create an <a href="https://zenparsing.github.io/es-observable/">ECMAScript Observable</a> object
         called <b>jindo.events</b> in your document. An Observable acts like a promise but continues to deliver new values over time.
       </p>
 
