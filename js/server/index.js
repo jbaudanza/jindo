@@ -52,9 +52,11 @@ if (app.settings.env === 'development') {
 
 app.use(require('./auth'));
 
+const crossSiteHeaders = require('./crossSiteHeaders')
 
+app.options('/events', crossSiteHeaders);
 
-app.post('/events', function(req, res, next) {
+app.post('/events', crossSiteHeaders, function(req, res, next) {
   if (!req.headers['origin']) {
     res.status(400).json({error: 'Origin header required'});
     return;

@@ -30,8 +30,11 @@ function getProviders(req) {
   return providers;
 }
 
+const crossSiteHeaders = require('./crossSiteHeaders')
 
-app.get('/providers.json', function(req, res) {
+app.options('/providers.json', crossSiteHeaders);
+
+app.get('/providers.json', crossSiteHeaders, function(req, res) {
   res.json(
     Object.assign(
       {csrf: req.csrfToken()},

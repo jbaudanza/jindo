@@ -88,7 +88,7 @@ function openSocket() {
 openSocket();
 
 const providersPromise = (
-  fetch('/providers.json', {credentials: 'include'}).then(r => r.json())
+  fetch(getJindoHost().join('//') + '/providers.json', {credentials: 'include'}).then(r => r.json())
 );
 
 let providers = null;
