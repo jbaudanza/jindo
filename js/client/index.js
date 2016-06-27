@@ -33,7 +33,7 @@ function isOffline() {
 
 // TODO: when triggered, we should try to reconnect if we're not already connected
 const onlineEvent = Rx.Observable.fromEvent(window, 'online');
-
+const messageEvent = Rx.Observable.fromEvent(window, 'message');
 
 let failures = 0;
 
@@ -48,6 +48,10 @@ function getJindoHost() {
     }
   }
   return ['https', "www.jindo.io"];
+}
+
+function getJindoOrigin() {
+  return getJindoHost().join('//')
 }
 
 function openSocket() {
@@ -88,7 +92,7 @@ function openSocket() {
 openSocket();
 
 const providersPromise = (
-  fetch(getJindoHost().join('//') + '/providers.json', {credentials: 'include'}).then(r => r.json())
+  fetch(getJindoOrigin() + '/providers.json', {credentials: 'include'}).then(r => r.json())
 );
 
 let providers = null;
@@ -109,9 +113,7 @@ function publish(event, token) {
       headers['Authorization'] = "Bearer " + token;
     }
 
-    const prefix = getJindoHost().join('//');
-
-    return fetch(prefix + '/events', {
+    return fetch(getJindoOrigin() + '/events', {
       method: 'POST',
       credentials: 'include',
       body: JSON.stringify(event),
@@ -140,7 +142,7 @@ function authenticate(providerName) {
       client_id: provider.clientId,
       redirect_uri: provider.redirectUri,
       response_type: 'code',
-      state: providers.csrf
+      state: providers.csrf + "|" + window.location.origin
   });
 
   const popup = window.open(url, 'login', 'width=620,height=600');
@@ -154,18 +156,26 @@ function authenticate(providerName) {
   });
 }
 
+messageEvent.subscribe(function(event) {
+  if (!authFunc)
+    return;
 
-window.authCallback = function(object) {
-  if (authFunc) {
-    authFunc(object);
-    authFunc = null;
-  }
-};
+  const obj = event.data;
+
+  if (typeof(obj) !== 'object' || obj.type !== 'jindo-authentication')
+    return;
+
+  if (event.origin !== getJindoOrigin())
+    return;
+
+  authFunc(obj.token);
+  authFunc = null;
+});
 
 const replayEvents = new Rx.ReplaySubject(1000);
 events.subscribe(replayEvents);
 
-const backend = {
+const jindo = {
   events: replayEvents,
   publish: publish,
   connected: connected,
@@ -174,6 +184,5 @@ const backend = {
 
 
 if (typeof window === 'object') {
-  window.backend = backend;
-  window.jindo = backend;
+  window.jindo = jindo;
 }

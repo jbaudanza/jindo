@@ -3,7 +3,8 @@ function crossSiteHeaders(req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,csrf-token');
+  res.setHeader('Access-Control-Allow-Headers',
+      'X-Requested-With,content-type,csrf-token,authorization');
   res.setHeader('Access-Control-Allow-Credentials', true);
 
   if (req.method == 'OPTIONS')

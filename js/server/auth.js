@@ -52,7 +52,11 @@ app.get('/oauth-callback/:provider', function(req, res, next) {
     return;
   };
 
-  if (!tokens.verify(req.cookies._csrf, req.query['state'])) {
+  const stateParts = req.query['state'].split("|");
+  const csrfToken = stateParts[0];
+  const origin = stateParts[1];
+
+  if (!tokens.verify(req.cookies._csrf, csrfToken)) {
     res.status('403').send('CSRF failure');
     return;    
   }
@@ -106,12 +110,12 @@ app.get('/oauth-callback/:provider', function(req, res, next) {
     };
     const token = jwt.sign(identity, process.env['SECRET']);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(responseHtml(token));
+    res.send(responseHtml(token, origin));
   }, next);
 });
 
 
-function responseHtml(token) {
+function responseHtml(token, origin) {
 
   return (
 `<!DOCTYPE html>
@@ -120,9 +124,7 @@ function responseHtml(token) {
     <title>Authenticate</title>
     <script type="text/javascript">
       function onLoad() {
-        window.opener.setTimeout(
-          function(){window.opener.authCallback('${token}')}, 1
-        );
+        window.opener.postMessage({type: 'jindo-authentication', token: '${token}'}, '${origin}');
       }
     </script>
   </head>
