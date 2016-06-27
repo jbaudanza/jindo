@@ -72,7 +72,6 @@ function openSocket() {
     connected.next(false);
     // TODO: maybe event.wasClean is useful?
     //https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
-    console.log('closed', event.wasClean, event.code);
 
     failures += 1;
 
@@ -82,10 +81,6 @@ function openSocket() {
     setTimeout(openSocket, delay);
 
     subscription.unsubscribe();
-  });
-
-  socket.addEventListener('error', function(event) {
-    console.log('error', event);
   });
 }
 
