@@ -42,12 +42,12 @@ function getJindoHost() {
   const tags = document.getElementsByTagName('script');
   for (let i=0; i<tags.length; i++) {
     const tag = tags[i];
-    const match = tag.src.match(/(https?:)\/\/([\w\.\:\d]+)\/client\.js$/)
+    const match = tag.src.match(/(https?:)\/\/([\w\.\:\d]+)\/jindo\.js$/)
     if (match) {
       return [match[1], match[2]];
     }
   }
-  return ['https', "www.jindo.io"];
+  return ['https:', "www.jindo.io"];
 }
 
 function getJindoOrigin() {
