@@ -45,7 +45,7 @@ const browserifyOptions = {
 
 if (app.settings.env === 'development') {
   const browserify = require('browserify-middleware');
-  app.get('/client.js', browserify('./js/client/index.js', browserifyOptions));
+  app.get('/jindo.js', browserify('./js/client/index.js', browserifyOptions));
   app.get('/chat.js', browserify('./js/chat/index.js', browserifyOptions));
   app.get('/landing.js', browserify('./js/client/landing.js', browserifyOptions));
 }
