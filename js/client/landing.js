@@ -224,35 +224,45 @@ function Doc(props) {
     <div style={{paddingTop: '0.75em'}}>
 
       <p>
-        <b>jindo.io</b> is a drop-in reactive backend for Javascript applications.
+        <b>jindo.io</b> is a minimalist drop-in reactive backend for Javascript
+        applications.
       </p>
 
       <p>
         To use jindo, simply include the script tag in your document.
       </p>
 
+
+      <p>
+        Jindo provides a simple way to store, synchronize, and replay events
+        that happen inside your application. An event is defined as anything
+        that affects the current state of your application. For example, if a
+        user updated their profile image, enters a message into a chatroom,
+        or likes a post, you might want to generate a jindo event.
+      </p>
+
       <p>
         Jindo will create an <a href="https://zenparsing.github.io/es-observable/">ECMAScript Observable</a> object
-        called <b>jindo.events</b> in your document. An Observable acts like a promise but continues to deliver new values over time.
+        called <span className='inline-code'>jindo.events</span> in your Javascript namespace.
+        An Observable acts like a promise but continues to deliver new values over time.
       </p>
 
       <p>
-        When a client subscribes to the jindo observable, the application will receive
-        notifications whenever a new event is published to the jindo API.
-        All clients that running on the same origin domain will by synchronized
-        to the same jindo observable.
+        When a client subscribes to the jindo observable, jindo will replay
+        every jindo event that has occured on that website. It will also publish
+        new events as they occur. Your application can reduce this event stream
+        into its current state.
       </p>
 
       <p>
-        Subscribing to the jindo observable will replay all the events that have
-        ever happened on that observable. This allows you to reduce the event
-        stream into the current state of your reactive application.
+        The jindo observable is powered by <a href="https://github.com/Reactive-Extensions/RxJS">RxJs</a>, so
+        all of RxJs&#8217;s functions like <span className='inline-code'>map</span>, <span className='inline-code'>reduce</span>, and <span className='inline-code'>scan</span> are available to you.
       </p>
 
       <CodeSnippit code={reduceJs} />
 
       <p>
-        Events can be pushed onto your jindo observable through the <b>jindo.publish()</b> function.
+        Events can be pushed onto your jindo observable through the <span className='inline-code'>jindo.publish()</span> function.
         All clients will observe the new event simultanously.
       </p>
 
@@ -287,17 +297,21 @@ function Doc(props) {
       </p>
 
       <p>
-        This is a preview release. There are more exciting features coming
-        soon. For example:
+        This is a preview release. We&#8217;re very excited about some new
+        features in our roadmap. For example:
       </p>
 
-      <ul style={{listStyleType: 'circle', paddingLeft: '50px'}}>
+      <ul style={{listStyleType: 'circle', paddingLeft: '50px', marginBottom: '0.75em'}}>
         <li>Time traveling</li>
         <li>Private observables</li>
         <li>Server side observables</li>
       </ul>
 
       <CodeSnippit code={subscribeJs} run={true} />
+
+      <p>
+      Want to say hello? Email <a href="mailto:hello@jindo.io">hello@jindo.io</a>.
+      </p>
 
     </div>
   )
