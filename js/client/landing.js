@@ -17,7 +17,11 @@ NrAIBtaY6C/iE29TWwIDAQAB
 -----END PUBLIC KEY-----
 `;
 
-const {JSEncrypt} = require('jsencrypt');
+
+let JSEncrypt;
+if (typeof navigator === 'object') {
+  JSEncrypt = require('jsencrypt').JSEncrypt;
+}
 
 
 function TabItem(props) {
@@ -218,7 +222,7 @@ function thankYou() {
 }
 `
 
-function Doc(props) {
+function LandingPage(props) {
 
   return (
     <div style={{paddingTop: '0.75em'}}>
@@ -317,6 +321,12 @@ function Doc(props) {
   )
 }
 
-window.main = function(el, backend) {
-  ReactDOM.render(<Doc backend={backend}/>, el);
+if (typeof window === 'object') {
+  window.main = function(el, backend) {
+    ReactDOM.render(<LandingPage backend={backend}/>, el);
+  }
+}
+
+if (typeof module === 'object') {
+  module.exports = LandingPage;
 }
