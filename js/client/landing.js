@@ -238,10 +238,10 @@ function LandingPage(props) {
 
 
       <p>
-        Jindo provides a simple way to store, synchronize, and replay events
+        Jindo provides a mechanism to store, synchronize, and replay events
         that happen inside your application. An event is defined as anything
         that affects the current state of your application. For example, if a
-        user updated their profile image, enters a message into a chatroom,
+        user updates their profile image, enters a message into a chatroom,
         or likes a post, you might want to generate a jindo event.
       </p>
 
