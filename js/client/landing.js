@@ -63,6 +63,8 @@ class CodeSnippit extends React.Component {
       tab = 'source';
     }
     this.state = {hasRun: false, running: false, tab: tab};
+
+    this.configureAce = this.configureAce.bind(this);
   }
 
   run() {
@@ -85,16 +87,18 @@ class CodeSnippit extends React.Component {
     this.setState({hasRun: true, running: false, tab: 'output'});
   }
 
-  componentDidMount() {
-    this.refs.editor.innerHTML = this.props.code;
-    this.editor = ace.edit(this.refs.editor);
+  configureAce(editorEl) {
+    editorEl.innerHTML = this.props.code;
+    this.editor = ace.edit(editorEl);
     this.editor.setTheme("ace/theme/monokai");
     this.editor.getSession().setMode("ace/mode/jsx");
     this.editor.setOptions({
       fontFamily: "Source Code Pro",
       fontSize: '16px'
     });
+  }
 
+  componentDidMount() {
     if (this.props.run) {
       this.run();
     }
@@ -122,7 +126,7 @@ class CodeSnippit extends React.Component {
       <div className='code-snippit'>
         <ul className="accordion-tabs">
           <TabItem title="Source" active={this.state.tab === 'source'} onActivate={this.setTab.bind(this, 'source')}>
-            <div ref="editor" style={style} />
+            <div ref={this.configureAce} style={style} />
             <button onClick={this.run} disabled={this.state.running}>
               {this.state.hasRun ? 'Re-Run' : 'Run'}
             </button>

@@ -7,4 +7,3 @@ const ChatApp = require('./ChatApp');
 window.main = function(el, backend) {
   ReactDOM.render(<ChatApp backend={backend} />, el);
 }
-
