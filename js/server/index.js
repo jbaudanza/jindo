@@ -138,23 +138,72 @@ wss.on('connection', function(socket) {
 
   const origin = socket.upgradeReq.headers['origin'];
 
-  console.log("WebSocket connection opened", remoteAddr);
+  function log(message) {
+    console.log(`${new Date().toISOString()} [${remoteAddr}]`, message)
+  }
+
+  function send(object) {
+    if (socket.readyState === 1) { // OPEN
+      socket.send(JSON.stringify(object));
+    } else {
+      log(`Tried to send to WebSocket in readyState: ${socket.readyState}`)
+    }
+  }
+
+  log("WebSocket connection opened");
 
   let subscription = null;
 
-  socket.on('message', function(message) {
-    const minId = parseInt(message);
-    subscription = database.streamEvents(minId, origin).subscribe(function(list) {
-      if (socket.readyState === 1) { // OPEN
-        socket.send(JSON.stringify(list));
-      } else {
-        console.warn("Tried to send to WebSocket in readyState", socket.readyState)
-      }
-    });
+  socket.on('message', function(data) {
+    let message;
+
+    try {
+      message = JSON.parse(data);
+    } catch(e) {
+      log("Error parsing JSON");
+      console.error(e);
+    }
+
+    if (typeof message.type !== 'string') {
+      log("Received message without a type")
+      return;
+    }
+
+    log("received message " + message.type);
+
+    switch (message.type) {
+      case 'subscribe':
+        if (subscription) {
+          log("already subscribed");
+          break;
+        }
+
+        if (typeof message.minId !== 'number') {
+          log("expected minId number");
+          break;
+        }
+
+        subscription = database.streamEvents(message.minId, origin).subscribe(function(list) {
+          send({
+            type: 'events',
+            list: list
+          });
+        });
+        break;
+      case 'event':
+        break;
+      case 'join':
+        break;
+      case 'leave':
+        break;
+      default:
+        log(`Received unknown message type ${message.type}`)
+        return;
+    }
   });
 
   socket.on('close', function() {
-    console.log("Closing WebSocket");
+    log("Closing WebSocket");
     if (subscription) {
       subscription.unsubscribe();
     }

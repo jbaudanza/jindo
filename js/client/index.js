@@ -3,12 +3,13 @@ require('whatwg-fetch');
 const Rx = require('rxjs');
 const qs = require('qs');
 
+const presenceEvents = new Rx.Subject();
 const incommingMessages = new Rx.Subject();
 const connected = new Rx.ReplaySubject(1);
 
 const events = incommingMessages
-  .map(e => JSON.parse(e.data))
-  .flatMap(e => e);
+  .filter(msg => msg.type === 'events')
+  .flatMap(msg => Rx.Observable.from(msg.list));
 
 let lastId = 0;
 
@@ -60,10 +61,19 @@ function openSocket() {
   const endpoint = `${protocol}//${hostname}`;
 
   const socket = new WebSocket(endpoint);
-  const subscription = Rx.Observable.fromEvent(socket, 'message').subscribe(incommingMessages);
+  const subscription = Rx.Observable.fromEvent(socket, 'message')
+      .map(e => JSON.parse(e.data))
+      .subscribe(incommingMessages);
+
+  function send(object) {
+    socket.send(JSON.stringify(object));
+  }
 
   socket.addEventListener('open', function() {
-    socket.send(lastId);
+    send({
+      type: 'subscribe',
+      minId: lastId
+    });
     failures = 0;
     connected.next(true);
   });
@@ -170,11 +180,20 @@ messageEvent.subscribe(function(event) {
 const replayEvents = new Rx.ReplaySubject(1000);
 events.subscribe(replayEvents);
 
+function join(joinEvent, partEvent, token) {
+  presenceEvents.next({
+    joinEvent: jointEvent,
+    partEvent: partEvent,
+    token: token
+  });
+}
+
 const jindo = {
   events: replayEvents,
   publish: publish,
   connected: connected,
-  authenticate: authenticate
+  authenticate: authenticate,
+  join: join
 };
 
 
