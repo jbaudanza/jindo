@@ -144,6 +144,10 @@ wss.on('connection', function(socket) {
     }
   }
 
+  function insertEvent(event, actor) {
+    database.insertEvent(event, actor, remoteAddr, origin)
+  }
+
   log("WebSocket connection opened");
 
   let subscription = null;
@@ -188,9 +192,15 @@ wss.on('connection', function(socket) {
       case 'event':
         break;
       case 'presence':
-        let presence = message;
-        break;
-      case 'leave':
+        if (presence && presence.partEvent) {
+          insertEvent(presence.partEvent, presence.token);
+        }
+
+        presence = message;
+
+        if (presence.joinEvent) {
+          insertEvent(presence.joinEvent, presence.token);
+        }
         break;
       default:
         log(`Received unknown message type ${message.type}`)
@@ -200,6 +210,14 @@ wss.on('connection', function(socket) {
 
   socket.on('close', function() {
     log("Closing WebSocket");
+
+    // TODO: How do we make sure the part event happens if the server
+    // goes offline? There probably needs to be some kind of ping/keepalive
+    // mechanism
+    if (presence && presence.partEvent) {
+      insertEvent(presence.partEvent, presence.token);
+    }
+
     if (subscription) {
       subscription.unsubscribe();
     }
