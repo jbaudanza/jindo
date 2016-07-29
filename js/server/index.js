@@ -103,15 +103,9 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .status(429)
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
-      const promise = database.insertEvent(
-        event, actor, req.ip, req.headers['origin']
+      res.status(201).json(
+        database.insertEvent(event, actor, req.ip, req.headers['origin'])
       );
-
-      promise.then(function() {
-        database.query('NOTIFY events');
-      });
-
-      res.status(201).json(promise); 
     }
   }, next);
 });
@@ -153,6 +147,7 @@ wss.on('connection', function(socket) {
   log("WebSocket connection opened");
 
   let subscription = null;
+  let presence = null;
 
   socket.on('message', function(data) {
     let message;
@@ -192,7 +187,8 @@ wss.on('connection', function(socket) {
         break;
       case 'event':
         break;
-      case 'join':
+      case 'presence':
+        let presence = message;
         break;
       case 'leave':
         break;
