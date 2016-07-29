@@ -16,18 +16,27 @@ const INSERT_SQL = `
 `;
 
 
-function connectAndRun(callback) {
+function openConnection() {
   return new Promise(function(resolve, reject) {
     pg.connect(conString, function(err, client, done) {
       if (err) {
         reject(err);
-        return;
+      } else {
+        resolve([client, done]);
       }
-
-      const promise = callback(client);
-      promise.then(done);
-      promise.then(resolve, reject);
     });
+  });
+}
+
+
+function connectAndRun(callback) {
+  return openConnection().then(function(array) {
+    const client = array[0];
+    const done = array[1];
+
+    const promise = callback(client);
+    promise.then(done);
+    return promise;
   });
 }
 
@@ -53,14 +62,19 @@ function query(sql, args) {
 
 
 function insertEvent(event, actor, ip, origin) {
-  return connectAndRun(function(client) {
+  return openConnection().then(function(array) {
+    const client = array[0];
+    const done = array[1];
+
     const promise = queryWithPromise(
       client, INSERT_SQL, [actor, ip, event, origin]
     ).then((result) => transformEvent(result.rows[0]));
 
-    return promise.then(function() {
-      client.query('NOTIFY events');
-    });
+    promise
+      .then(() => queryWithPromise(client, 'NOTIFY events'))
+      .then(done, done);
+
+    return promise;
   });
 }
 
