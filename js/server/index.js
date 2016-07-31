@@ -182,12 +182,10 @@ wss.on('connection', function(socket) {
           break;
         }
 
-        subscription = database.streamEvents(message.minId, origin).subscribe(function(list) {
-          send({
-            type: 'events',
-            list: list
-          });
-        });
+        subscription = database.streamEvents(message.minId, origin)
+            .map((list) => ({type: 'events', 'list': list}))
+            .subscribe(send)
+
         break;
       case 'event':
         break;
