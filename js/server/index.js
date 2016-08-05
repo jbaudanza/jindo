@@ -145,13 +145,28 @@ wss.on('connection', function(socket) {
   }
 
   function insertEvent(event, actor) {
-    database.insertEvent(event, actor, remoteAddr, origin)
+    return database.insertEvent(event, actor, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");
 
   let subscription = null;
   let presence = null;
+
+  // This gets called when the socket is closed or the process shuts down.
+  socket.cleanup = function() {
+    log("Closing WebSocket");
+
+    if (subscription) {
+      subscription.unsubscribe();
+    }
+
+    if (presence && presence.partEvent) {
+      return insertEvent(presence.partEvent, presence.token);
+    } else {
+      return Promise.resolve();
+    }
+  };
 
   socket.on('message', function(data) {
     let message;
@@ -206,18 +221,42 @@ wss.on('connection', function(socket) {
     }
   });
 
-  socket.on('close', function() {
-    log("Closing WebSocket");
-
-    // TODO: How do we make sure the part event happens if the server
-    // goes offline? There probably needs to be some kind of ping/keepalive
-    // mechanism
-    if (presence && presence.partEvent) {
-      insertEvent(presence.partEvent, presence.token);
-    }
-
-    if (subscription) {
-      subscription.unsubscribe();
-    }
-  });
+  socket.on('close', socket.cleanup);
 });
+
+function cleanup() {
+  console.log("Cleaning up")
+
+  // We have to manually call the cleanup functions on each client because we
+  // want to wait for them to finish writing to the db before letting the
+  // process exit.
+  const promise = Promise.all(wss.clients.map(terminateClient));
+
+  function terminateClient(client) {
+    // Disable the close event so it's not called again when the connection
+    // terminates
+    client.removeListener('close', client.cleanup);
+
+    const promise = client.cleanup();
+    client.terminate();
+    return promise;
+  }
+
+  function exit(code) {
+    console.log(wss.clients);
+    console.log('Exiting.');
+    process.exit(code);
+  }
+
+  function exitWithError(error) {
+    console.error(error);
+    exit(1);
+  }
+
+  promise
+    .then(function() { wss.close() })
+    .then(exit.bind(null, 0), exitWithError);
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
