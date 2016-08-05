@@ -7,6 +7,7 @@ CREATE TABLE events (
   ip_address INET,
   name TEXT,
   origin TEXT,
+  process_id UUID,
   data JSONB NOT NULL
 );
 

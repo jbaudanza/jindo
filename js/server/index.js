@@ -10,12 +10,16 @@ const WebSocketServer = require('ws').Server;
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const csurf = require('csurf');
+const uuid = require('node-uuid');
 
 const csrfProtection = csurf({
   cookie: true
 });
 
 const app = express();
+
+const processId = uuid.v4();
+console.log("Process ID", processId);
 
 let logFormat;
 let appSecret;
@@ -104,7 +108,7 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, req.ip, req.headers['origin'])
+        database.insertEvent(event, actor, processId, req.ip, req.headers['origin'])
       );
     }
   }, next);
@@ -145,7 +149,7 @@ wss.on('connection', function(socket) {
   }
 
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, remoteAddr, origin);
+    return database.insertEvent(event, actor, processId, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");
@@ -242,20 +246,18 @@ function cleanup() {
     return promise;
   }
 
-  function exit(code) {
-    console.log(wss.clients);
-    console.log('Exiting.');
-    process.exit(code);
+  function exit() {
+    process.exit(0);
   }
 
   function exitWithError(error) {
     console.error(error);
-    exit(1);
+    process.exit(1);
   }
 
   promise
-    .then(function() { wss.close() })
-    .then(exit.bind(null, 0), exitWithError);
+    .then(function() { wss.close(); })
+    .then(exit, exitWithError);
 }
 
 process.on('SIGINT', cleanup);

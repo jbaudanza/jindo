@@ -9,13 +9,6 @@ const conString = (
 );
 
 
-const INSERT_SQL = `
-  INSERT INTO events (timestamp, actor, ip_address, data, origin)
-  VALUES (NOW(), $1, $2, $3, $4)
-  RETURNING *
-`;
-
-
 function openConnection() {
   return new Promise(function(resolve, reject) {
     pg.connect(conString, function(err, client, done) {
@@ -61,13 +54,20 @@ function query(sql, args) {
 }
 
 
-function insertEvent(event, actor, ip, origin) {
+const INSERT_SQL = `
+  INSERT INTO events (timestamp, actor, process_id, ip_address, data, origin)
+  VALUES (NOW(), $1, $2, $3, $4, $5)
+  RETURNING *
+`;
+
+
+function insertEvent(event, actor, processId, ip, origin) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];
 
     const promise = queryWithPromise(
-      client, INSERT_SQL, [actor, ip, event, origin]
+      client, INSERT_SQL, [actor, processId, ip, event, origin]
     ).then((result) => transformEvent(result.rows[0]));
 
     promise
