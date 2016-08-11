@@ -159,7 +159,7 @@ function transformEvent(row) {
 
 function streamEvents(minId, origin) {
   return streamQuery(minId, (minId) => (
-    query("SELECT * FROM events WHERE id > $1 AND origin= $2", [minId, origin])
+    query("SELECT * FROM events WHERE id > $1 AND origin=$2", [minId, origin])
       .then(r => r.rows.map(transformEvent))
   ));
 }

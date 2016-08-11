@@ -231,6 +231,8 @@ wss.on('connection', function(socket) {
 function cleanup() {
   console.log("Cleaning up")
 
+  clearInterval(intervalId);
+
   // We have to manually call the cleanup functions on each client because we
   // want to wait for them to finish writing to the db before letting the
   // process exit.
@@ -247,6 +249,7 @@ function cleanup() {
   }
 
   function exit() {
+    console.log('exiting')
     process.exit(0);
   }
 
@@ -255,8 +258,17 @@ function cleanup() {
     process.exit(1);
   }
 
+  setTimeout(
+    function() {
+      console.error("Cleanup timed out");
+      process.exit(2);
+    },
+    15000
+  )
+
   promise
     .then(function() { wss.close(); })
+    .then(insertServerEvent.bind(null, 'server-shutdown'))
     .then(exit, exitWithError);
 }
 
