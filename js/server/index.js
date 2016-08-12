@@ -4,6 +4,10 @@ if (process.env !== 'production') {
   require('dotenv').config();
 }
 
+require("babel-register")({
+  presets: "es2015-node4", plugins: 'transform-flow-strip-types'
+})
+
 const express = require('express');
 const database = require('./database');
 const WebSocketServer = require('ws').Server;
@@ -11,6 +15,9 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const csurf = require('csurf');
 const uuid = require('node-uuid');
+const Rx = require('rxjs');
+const set = require('../set');
+const _ = require('lodash');
 
 const csrfProtection = csurf({
   cookie: true
@@ -20,6 +27,21 @@ const app = express();
 
 const processId = uuid.v4();
 console.log("Process ID", processId);
+
+function insertServerEvent(type) {
+  console.log(type, processId);
+  return database.insertEvent({type: type}, null, processId, null, null);
+}
+
+function insertServerPing() {
+  return insertServerEvent('server-ping');
+}
+
+insertServerEvent('server-startup');
+
+const PING_INTERVAL = 15 * 60 * 1000;
+const intervalId = setInterval(insertServerPing, PING_INTERVAL);
+
 
 let logFormat;
 let appSecret;
@@ -274,3 +296,62 @@ function cleanup() {
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+
+
+/*
+ * Next steps:
+ *  - make this stream a list of servers online
+ *  - map that stream onto a stream of users that are online
+ *  - make that visible to clients somehow
+ */
+
+
+function removeDeadProcesses(now, processes) {
+  return _.omitBy(processes, (p) => (now - p.lastSeen) > PING_INTERVAL )
+}
+
+
+function reduceBatchToServerList(processes, events) {
+  return events.reduce(reduceToServerList, processes);
+  return reduceToServerList(processes, event);
+}
+
+function reduceToServerList(processes, event) {
+  if (!event.processId)
+    return processes;
+
+  function build(value) {
+    const obj = {};
+    if (obj.processId) {
+      obj[event.processId] = Object.assign({}, obj.processId, value);
+    } else {
+      obj[event.processId] = value;
+    }
+
+    return Object.assign({}, processes, obj);
+  }
+
+  switch (event.type) {
+    case 'server-startup':
+      return build({startedAt: event.timestamp, lastSeen: event.timestamp});
+
+    case 'server-ping':
+      return build({lastSeen: event.timestamp});
+
+    case 'server-shutdown':
+      return _.omit(processes, event.processId);
+
+    default:
+      return processes;
+  }
+}
+
+const ticks = Rx.Observable.interval(1000)
+    .map((x) => new Date())
+
+
+let serversOnline = database.streamEvents(0, null)
+  .scan((processes, events) => events.reduce(reduceToServerList, processes), {})
+
+serversOnline = Rx.Observable.combineLatest(ticks, serversOnline, removeDeadProcesses)
+  .distinctUntilChanged(_.isEqual)

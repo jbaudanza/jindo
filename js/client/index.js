@@ -64,10 +64,11 @@ function openSocket() {
   const socket = new WebSocket(endpoint);
   const subscriptions = [];
 
+  const messageStream = Rx.Observable.fromEvent(socket, 'message')
+      .map(e => JSON.parse(e.data));
+
   subscriptions.push(
-    Rx.Observable.fromEvent(socket, 'message')
-      .map(e => JSON.parse(e.data))
-      .subscribe(incommingMessages)
+    messageStream.subscribe(incommingMessages)
   );
 
   function send(object) {
@@ -187,7 +188,7 @@ messageEvent.subscribe(function(event) {
   authFunc = null;
 });
 
-const replayEvents = new Rx.ReplaySubject(1000);
+const replayEvents = new Rx.ReplaySubject(10000);
 events.subscribe(replayEvents);
 
 function presence(joinEvent, partEvent, token) {

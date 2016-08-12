@@ -144,9 +144,16 @@ function streamQuery(minId, fn) {
 function transformEvent(row) {
   const obj = Object.assign({}, row.data, {
     id: row.id,
-    timestamp: row.timestamp,
-    path: row.path
+    timestamp: row.timestamp
   });
+
+  if (row.path) {
+    obj.path = row.path;
+  }
+
+  if (row.process_id) {
+    obj.processId = row.process_id;
+  }
 
   if (row.actor) {
     obj.actor = Object.assign({}, row.actor);
@@ -158,8 +165,16 @@ function transformEvent(row) {
 
 
 function streamEvents(minId, origin) {
+  let querySql = "SELECT * FROM events WHERE id > $1";
+  let queryParams = [];
+
+  if (origin) {
+    querySql += " AND origin=$2";
+    queryParams.push(queryParams.concat())
+  }
+
   return streamQuery(minId, (minId) => (
-    query("SELECT * FROM events WHERE id > $1 AND origin=$2", [minId, origin])
+    query(querySql, [minId].concat(queryParams))
       .then(r => r.rows.map(transformEvent))
   ));
 }
