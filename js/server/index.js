@@ -184,14 +184,15 @@ wss.on('connection', function(socket) {
   connectionCounter++;
   const connectionId = connectionCounter;
 
+  let sessionId = null;
+
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, processId, connectionId, null, remoteAddr, origin);
+    return database.insertEvent(event, actor, processId, connectionId, sessionId, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");
 
   let subscription = null;
-  let presence = null;
 
   // This gets called when the socket is closed or the process shuts down.
   socket.cleanup = function() {
@@ -201,11 +202,7 @@ wss.on('connection', function(socket) {
       subscription.unsubscribe();
     }
 
-    if (presence && presence.partEvent) {
-      return insertEvent(presence.partEvent, presence.token);
-    } else {
-      return Promise.resolve();
-    }
+    return insertEvent({type: 'connection-closed'});
   };
 
   socket.on('message', function(data) {
@@ -237,23 +234,20 @@ wss.on('connection', function(socket) {
           break;
         }
 
+        if (typeof message.sessionId !== 'string') {
+          log('expected sessionId');
+          break;
+        }
+        sessionId = message.sessionId;
+
+        insertEvent({type: 'connection-open'});
+
         subscription = database.streamEvents(message.minId, origin)
             .map((list) => ({type: 'events', 'list': list}))
             .subscribe(send)
 
         break;
       case 'event':
-        break;
-      case 'presence':
-        if (presence && presence.partEvent) {
-          insertEvent(presence.partEvent, presence.token);
-        }
-
-        presence = message;
-
-        if (presence.joinEvent) {
-          insertEvent(presence.joinEvent, presence.token);
-        }
         break;
       default:
         log(`Received unknown message type ${message.type}`)

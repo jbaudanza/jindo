@@ -13,8 +13,6 @@ const events = incommingMessages
 
 let lastId = 0;
 
-const presenceMessages = new Rx.ReplaySubject(1);
-
 const sessionId = uuid.v4();
 
 events.subscribe(function(event) {
@@ -81,12 +79,9 @@ function openSocket() {
   socket.addEventListener('open', function() {
     send({
       type: 'subscribe',
-      minId: lastId
+      minId: lastId,
+      sessionId: sessionId
     });
-
-    subscriptions.push(
-      presenceMessages.subscribe(send)
-    )
 
     failures = 0;
     connected.next(true);
@@ -196,21 +191,11 @@ messageEvent.subscribe(function(event) {
 const replayEvents = new Rx.ReplaySubject(10000);
 events.subscribe(replayEvents);
 
-function presence(joinEvent, partEvent, token) {
-  presenceMessages.next({
-    type: 'presence',
-    joinEvent: joinEvent,
-    partEvent: partEvent,
-    token: token
-  });
-}
-
 const jindo = {
   events: replayEvents,
   publish: publish,
   connected: connected,
-  authenticate: authenticate,
-  presence: presence
+  authenticate: authenticate
 };
 
 
