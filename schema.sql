@@ -8,6 +8,8 @@ CREATE TABLE events (
   name TEXT,
   origin TEXT,
   process_id UUID,
+  session_id UUID,
+  connection_id INTEGER,
   data JSONB NOT NULL
 );
 

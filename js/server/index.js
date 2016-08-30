@@ -34,6 +34,7 @@ function insertServerEvent(type) {
       null /* actorId */,
       processId,
       null, /* connectionId */
+      null, /* sessionId */
       null, /* ip */
       null /* origin */);
 }
@@ -105,6 +106,9 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
     return;
   }
 
+  const sessionId = event.sessionId;
+  delete event.sessionId;
+
   const authorization = req.headers['authorization'];
   let actor;
   if (authorization) {
@@ -135,7 +139,7 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, processId, null, req.ip, req.headers['origin'])
+        database.insertEvent(event, actor, processId, null, sessionId, req.ip, req.headers['origin'])
       );
     }
   }, next);
@@ -181,7 +185,7 @@ wss.on('connection', function(socket) {
   const connectionId = connectionCounter;
 
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, processId, connectionId, remoteAddr, origin);
+    return database.insertEvent(event, actor, processId, connectionId, null, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");

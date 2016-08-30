@@ -2,6 +2,7 @@ require('whatwg-fetch');
 
 const Rx = require('rxjs');
 const qs = require('qs');
+const uuid = require('node-uuid');
 
 const incommingMessages = new Rx.Subject();
 const connected = new Rx.ReplaySubject(1);
@@ -13,6 +14,8 @@ const events = incommingMessages
 let lastId = 0;
 
 const presenceMessages = new Rx.ReplaySubject(1);
+
+const sessionId = uuid.v4();
 
 events.subscribe(function(event) {
   if (event.id > lastId) {
@@ -118,6 +121,8 @@ providersPromise.then(function(value) {
 
 
 function publish(event, token) {
+  event = Object.assign({}, event, {sessionId: sessionId});
+
   // TODO: Kind of weird to put the csrf token on the providers list
   return providersPromise.then(function(providers) {
     const headers = {
