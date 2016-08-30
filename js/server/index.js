@@ -357,8 +357,36 @@ const ticks = Rx.Observable.interval(1000)
     .map((x) => new Date())
 
 
-let serversOnline = database.streamEvents(0, null)
-  .scan((processes, events) => events.reduce(reduceToServerList, processes), {})
+const allEvents = database.streamEvents(0, null);
+
+
+function reduceEventStream(eventStream, fn) {
+  return eventStream.scan((state, events) => events.reduce(fn, state), {});
+}
+
+let serversOnline = reduceEventStream(allEvents, reduceToServerList);
 
 serversOnline = Rx.Observable.combineLatest(ticks, serversOnline, removeDeadProcesses)
   .distinctUntilChanged(_.isEqual)
+
+
+function reduceToConnectionList(connections, event) {
+  switch (event.type) {
+    case 'connection-open':
+      const obj = {};
+      obj[event.sessionId] = {processId: event.processId};
+      return _.assign({}, connections, obj);
+
+    case 'connection-closed':
+      return _.omit(connections, event.sessionId);
+  }
+
+  return connections;
+}
+
+const connections = reduceEventStream(allEvents, reduceToConnectionList);
+
+// TODO: Create a list of open sessions
+connections.subscribe(function(e) {
+  console.log(e)
+});

@@ -156,6 +156,10 @@ function transformEvent(row) {
     obj.processId = row.process_id;
   }
 
+  if (row.session_id) {
+    obj.sessionId = row.session_id;
+  }
+
   if (row.actor) {
     obj.actor = Object.assign({}, row.actor);
     delete obj.actor.iat;
