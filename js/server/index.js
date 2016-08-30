@@ -29,8 +29,13 @@ const processId = uuid.v4();
 console.log("Process ID", processId);
 
 function insertServerEvent(type) {
-  console.log(type, processId);
-  return database.insertEvent({type: type}, null, processId, null, null);
+  return database.insertEvent(
+      {type: type},
+      null /* actorId */,
+      processId,
+      null, /* connectionId */
+      null, /* ip */
+      null /* origin */);
 }
 
 function insertServerPing() {
@@ -130,7 +135,7 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, processId, req.ip, req.headers['origin'])
+        database.insertEvent(event, actor, processId, null, req.ip, req.headers['origin'])
       );
     }
   }, next);
@@ -149,6 +154,8 @@ function requireOrigin(info) {
 
 // TODO: Assert the protocol is wss
 const wss = new WebSocketServer({server, verifyClient: requireOrigin});
+
+let connectionCounter = 0;
 
 wss.on('connection', function(socket) {
   const remoteAddr = (
@@ -170,8 +177,11 @@ wss.on('connection', function(socket) {
     }
   }
 
+  connectionCounter++;
+  const connectionId = connectionCounter;
+
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, processId, remoteAddr, origin);
+    return database.insertEvent(event, actor, processId, connectionId, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");
@@ -300,7 +310,6 @@ process.on('SIGTERM', cleanup);
 
 /*
  * Next steps:
- *  - make this stream a list of servers online
  *  - map that stream onto a stream of users that are online
  *  - make that visible to clients somehow
  */

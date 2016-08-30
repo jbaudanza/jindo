@@ -55,19 +55,20 @@ function query(sql, args) {
 
 
 const INSERT_SQL = `
-  INSERT INTO events (timestamp, actor, process_id, ip_address, data, origin)
-  VALUES (NOW(), $1, $2, $3, $4, $5)
+  INSERT INTO events (
+      timestamp, actor, process_id, connection_id, ip_address, data, origin
+  ) VALUES (NOW(), $1, $2, $3, $4, $5, $6)
   RETURNING *
 `;
 
 
-function insertEvent(event, actor, processId, ip, origin) {
+function insertEvent(event, actor, processId, connectionId, ip, origin) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];
 
     const promise = queryWithPromise(
-      client, INSERT_SQL, [actor, processId, ip, event, origin]
+      client, INSERT_SQL, [actor, processId, connectionId, ip, event, origin]
     ).then((result) => transformEvent(result.rows[0]));
 
     promise
@@ -170,7 +171,7 @@ function streamEvents(minId, origin) {
 
   if (origin) {
     querySql += " AND origin=$2";
-    queryParams.push(queryParams.concat())
+    queryParams.push(origin);
   }
 
   return streamQuery(minId, (minId) => (
