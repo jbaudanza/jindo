@@ -32,6 +32,7 @@ function insertServerEvent(type) {
   return database.insertEvent(
       {type: type},
       null /* actorId */,
+      'server-event',
       processId,
       null, /* connectionId */
       null, /* sessionId */
@@ -102,12 +103,25 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
   }
 
   if ('actor' in event) {
-    res.status(400).json({error: 'Reserverd attribute: actor'});
+    res.status(400).json({error: 'Reserved attribute: actor'});
+    return;
+  }
+
+  if (typeof event.sessionId !== 'string') {
+    res.status(400).json({error: 'Missing required attribute: sessionId'});
+    return;
+  }
+
+  if (typeof event.name !== 'string') {
+    res.status(400).json({error: 'Missing required attribute: name'});
     return;
   }
 
   const sessionId = event.sessionId;
   delete event.sessionId;
+
+  const name = event.name;
+  delete event.name;
 
   const authorization = req.headers['authorization'];
   let actor;
@@ -139,7 +153,7 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, processId, null, sessionId, req.ip, req.headers['origin'])
+        database.insertEvent(event, actor, name, processId, null, sessionId, req.ip, req.headers['origin'])
       );
     }
   }, next);
@@ -187,20 +201,19 @@ wss.on('connection', function(socket) {
   let sessionId = null;
 
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, processId, connectionId, sessionId, remoteAddr, origin);
+    return database.insertEvent(event, actor, 'server-event', processId, connectionId, sessionId, remoteAddr, origin);
   }
 
   log("WebSocket connection opened");
 
-  let subscription = null;
+  let subscriptions = {};
 
   // This gets called when the socket is closed or the process shuts down.
   socket.cleanup = function() {
     log("Closing WebSocket");
 
-    if (subscription) {
-      subscription.unsubscribe();
-    }
+    _.invoke(_.values(subscriptions), 'unsubscribe');
+    subscriptions = {};
 
     return insertEvent({type: 'connection-closed'});
   };
@@ -223,32 +236,56 @@ wss.on('connection', function(socket) {
     log("received message " + message.type);
 
     switch (message.type) {
-      case 'subscribe':
-        if (subscription) {
-          log("already subscribed");
-          break;
-        }
-
-        if (typeof message.minId !== 'number') {
-          log("expected minId number");
-          break;
-        }
-
+      case 'hello':
         if (typeof message.sessionId !== 'string') {
           log('expected sessionId');
           break;
         }
         sessionId = message.sessionId;
-
         insertEvent({type: 'connection-open'});
 
-        subscription = database.streamEvents(message.minId, origin)
-            .map((list) => ({type: 'events', 'list': list}))
-            .subscribe(send)
+      case 'subscribe':
+        if (typeof message.minId !== 'number') {
+          log("expected minId number");
+          break;
+        }
+
+        if (typeof message.subscriptionId !== 'number') {
+          log("expected subscriptionId string");
+          break;
+        }
+
+        if (message.subscriptionId in subscriptions) {
+          log("subscriptionId sent twice: " + message.subscriptionId);
+          break;
+        }
+
+        const subscription = database.streamEvents(message.minId, message.name)
+            .map((list) => ({
+              type: 'events',
+              list: list,
+              subscriptionId: message.subscriptionId
+            }))
+            .subscribe(send);
+
+        subscriptions[message.subscriptionId] = subscription;
 
         break;
-      case 'event':
+      case 'unsubscribe':
+        if (typeof message.subscriptionId !== 'number') {
+          log("expected subscriptionId string");
+          break;
+        }
+
+        if (!(message.subscriptionId in subscriptions)) {
+          log("subscriptionId not found: " + message.subscriptionId);
+          break;
+        }
+
+        subscriptions[message.subscriptionId].unsubscribe();
+        delete subscriptions[message.subscriptionId];
         break;
+
       default:
         log(`Received unknown message type ${message.type}`)
         return;
@@ -357,7 +394,7 @@ const ticks = Rx.Observable.interval(1000)
     .map((x) => new Date())
 
 
-const allEvents = database.streamEvents(0, null);
+const allEvents = database.streamEvents(0, 'server-events');
 
 
 function reduceEventStream(eventStream, fn) {

@@ -7,20 +7,39 @@ const uuid = require('node-uuid');
 const incommingMessages = new Rx.Subject();
 const connected = new Rx.ReplaySubject(1);
 
-const events = incommingMessages
+const subscribes = new Rx.Subject();
+const unsubscribes = new Rx.Subject();
+
+
+const subscriptionState = {};
+
+subscribes.subscribe(function(subscriptionInfo) {
+  subscriptionState[subscriptionInfo.subscriptionId] = subscriptionInfo;
+});
+
+unsubscribes.subscribe(function(subscriptionId) {
+  delete subscriptionState[subscriptionId];
+      // const idx = subscriptions.findIndex((o) => o.subscriptionId === subscriptionId);
+      // if (idx !== -1) {
+      //   subscriptions.splice(idx, 1);
+      // }
+});
+
+incommingMessages
   .filter(msg => msg.type === 'events')
-  .flatMap(msg => Rx.Observable.from(msg.list));
+  .subscribe(function(message) {
+    if (message.subscriptionId in subscriptionState) {
+      const state = subscriptionState[message.subscriptionId];
+      message.list.forEach(function(event) {
+        state.observer.next(event)
+        state.lastId = event.id;
+      });
+    }
+  });
 
 let lastId = 0;
 
 const sessionId = uuid.v4();
-
-events.subscribe(function(event) {
-  if (event.id > lastId) {
-    lastId = event.id
-  }
-});
-
 
 function isOnline() {
   if ('onLine' in navigator)
@@ -63,12 +82,12 @@ function openSocket() {
   const endpoint = `${protocol}//${hostname}`;
 
   const socket = new WebSocket(endpoint);
-  const subscriptions = [];
+  const cleanup = [];
 
   const messageStream = Rx.Observable.fromEvent(socket, 'message')
       .map(e => JSON.parse(e.data));
 
-  subscriptions.push(
+  cleanup.push(
     messageStream.subscribe(incommingMessages)
   );
 
@@ -76,12 +95,33 @@ function openSocket() {
     socket.send(JSON.stringify(object));
   }
 
-  socket.addEventListener('open', function() {
+  function sendSubscribe(subscriptionInfo) {
     send({
       type: 'subscribe',
-      minId: lastId,
-      sessionId: sessionId
+      name: subscriptionInfo.name,
+      minId: subscriptionInfo.lastId,
+      subscriptionId: subscriptionInfo.subscriptionId
     });
+  }
+
+  function sendUnsubscribe(subscriptionInfo) {
+    send({
+      type: 'unsubscribe',
+      name: subscriptionInfo.name
+    });
+  }
+
+  socket.addEventListener('open', function() {
+    send({
+      type: 'hello', sessionId: sessionId
+    });
+
+    Object.keys(subscriptionState).forEach(function(subscriptionId) {
+      sendSubscribe(subscriptionState[subscriptionId]);
+    });
+
+    cleanup.push(subscribes.subscribe(sendSubscribe));
+    cleanup.push(unsubscribes.subscribe(sendUnsubscribe));
 
     failures = 0;
     connected.next(true);
@@ -99,7 +139,7 @@ function openSocket() {
     const delay = Math.pow(2, failures) * 1000;
     setTimeout(openSocket, delay);
 
-    subscriptions.forEach((sub) => sub.unsubscribe());
+    cleanup.forEach((sub) => sub.unsubscribe());
   });
 }
 
@@ -115,8 +155,9 @@ providersPromise.then(function(value) {
 });
 
 
-function publish(event, token) {
-  event = Object.assign({}, event, {sessionId: sessionId});
+// TODO: Consider make this an observer instead: jindo.stream('foobar').next(event)
+function publish(name, event, token) {
+  event = Object.assign({}, event, {sessionId: sessionId, name: name});
 
   // TODO: Kind of weird to put the csrf token on the providers list
   return providersPromise.then(function(providers) {
@@ -172,6 +213,26 @@ function authenticate(providerName) {
   });
 }
 
+let subscriptionCounter = 0;
+
+function stream(name, howMany) {
+  return Rx.Observable.create(function(observer) {
+    const subscriptionId = subscriptionCounter;
+    subscriptionCounter++;
+
+    subscribes.next({
+      observer: observer,
+      name: name,
+      subscriptionId: subscriptionId,
+      lastId: 0
+    });
+
+    return function() {
+      unsubscribes.next(subscriptionId);
+    }
+  });
+}
+
 messageEvent.subscribe(function(event) {
   if (!authFunc)
     return;
@@ -188,11 +249,9 @@ messageEvent.subscribe(function(event) {
   authFunc = null;
 });
 
-const replayEvents = new Rx.ReplaySubject(10000);
-events.subscribe(replayEvents);
 
 const jindo = {
-  events: replayEvents,
+  stream: stream,
   publish: publish,
   connected: connected,
   authenticate: authenticate

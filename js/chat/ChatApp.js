@@ -138,7 +138,7 @@ class ChatApp extends React.Component {
   }
 
   componentWillMount() {
-    const messages = this.props.backend.events
+    const messages = this.props.backend.stream('chat-messages')
         .filter(e => e.message && e.actor)
         .scan((list, e) => list.concat(e), [])
         .map(list => list.slice(-10))
@@ -188,7 +188,7 @@ class ChatApp extends React.Component {
 
   onSubmit(event) {
     event.preventDefault();
-    this.props.backend.publish({message: this.state.message}, this.state.token);
+    this.props.backend.publish('chat-messages', {message: this.state.message}, this.state.token);
     this.setState({message: ''});
   }
 
