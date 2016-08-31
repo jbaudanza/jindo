@@ -57,7 +57,7 @@ function query(sql, args) {
 const INSERT_SQL = `
   INSERT INTO events (
       timestamp, actor, name, process_id, connection_id, session_id, ip_address, data
-  ) VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8)
+  ) VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7)
   RETURNING *
 `;
 

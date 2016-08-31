@@ -1,29 +1,16 @@
-"use strict";
-
-if (process.env !== 'production') {
-  require('dotenv').config();
-}
-
-require("babel-register")({
-  presets: "es2015-node4", plugins: 'transform-flow-strip-types'
-})
-
-const express = require('express');
-const database = require('./database');
-const WebSocketServer = require('ws').Server;
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
-const csurf = require('csurf');
-const uuid = require('node-uuid');
-const Rx = require('rxjs');
-const set = require('../set');
-const _ = require('lodash');
+import express from 'express';
+import database from './database';
+import {Server as WebSocketServer} from  'ws';
+import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+import csurf from 'csurf';
+import uuid from 'node-uuid';
+import Rx from 'rxjs';
+import * as _ from 'lodash';
 
 const csrfProtection = csurf({
   cookie: true
 });
-
-const app = express();
 
 const processId = uuid.v4();
 console.log("Process ID", processId);
@@ -48,7 +35,6 @@ insertServerEvent('server-startup');
 const PING_INTERVAL = 15 * 60 * 1000;
 const intervalId = setInterval(insertServerPing, PING_INTERVAL);
 
-
 let logFormat;
 let appSecret;
 
@@ -58,37 +44,7 @@ if (process.env['NODE_ENV'] === 'production') {
   logFormat = 'dev';
 }
 
-app.enable('trust proxy');
-
-app.use(require('morgan')(logFormat));
-app.use(express.static('public'));
-
-
-app.use(require('express-promise')());
-app.use(require('body-parser').json());
-
-// To generate a good secret: openssl rand 32 -base64
-app.use(cookieParser(process.env['SECRET']));
-app.use(csrfProtection);
-
-const browserifyOptions = {
-  transform: [['babelify', {presets: ["react", 'es2015']}]]
-};
-
-if (app.settings.env === 'development') {
-  const browserify = require('browserify-middleware');
-  app.get('/jindo.js', browserify('./js/client/index.js', browserifyOptions));
-  app.get('/chat.js', browserify('./js/chat/index.js', browserifyOptions));
-  app.get('/landing.js', browserify('./js/client/landing.js', browserifyOptions));
-}
-
-app.use(require('./auth'));
-
-const crossSiteHeaders = require('./crossSiteHeaders')
-
-app.options('/events', crossSiteHeaders);
-
-app.post('/events', crossSiteHeaders, function(req, res, next) {
+function postEvent(req, res, next) {
   const event = req.body;
 
   if ('timestamp' in event) {
@@ -103,12 +59,12 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
 
   if (typeof event.sessionId !== 'string') {
     res.status(400).json({error: 'Missing required attribute: sessionId'});
-    return;
+    return;    
   }
 
   if (typeof event.name !== 'string') {
     res.status(400).json({error: 'Missing required attribute: name'});
-    return;
+    return;    
   }
 
   const sessionId = event.sessionId;
@@ -151,19 +107,51 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
       );
     }
   }, next);
-});
-
-const server = app.listen((process.env['PORT'] || 5000), function() {
-  console.log("HTTP server listening to", server.address().port);
-});
+}
 
 
-// TODO: Assert the protocol is wss
-const wss = new WebSocketServer({server});
+
+export function start() {
+  const app = express();
+  app.enable('trust proxy');
+
+  app.use(require('morgan')(logFormat));
+  app.use(express.static('public'));
+
+
+  app.use(require('express-promise')());
+  app.use(require('body-parser').json());
+
+  // To generate a good secret: openssl rand 32 -base64
+  app.use(cookieParser(process.env['SECRET']));
+  app.use(csrfProtection);
+
+  app.use(require('./auth'));
+
+  const crossSiteHeaders = require('./crossSiteHeaders')
+
+  app.options('/events', crossSiteHeaders);
+
+  app.post('/events', crossSiteHeaders, postEvent);
+
+  const server = app.listen((process.env['PORT'] || 5000), function() {
+    console.log("HTTP server listening to", server.address().port);
+  });
+
+  // TODO: Assert the protocol is wss
+  const wss = new WebSocketServer({server});
+
+  wss.on('connection', onWebSocketConnection);
+
+  process.on('SIGINT', cleanup.bind(null, wss));
+  process.on('SIGTERM', cleanup.bind(null, wss));
+
+  return app;
+}
 
 let connectionCounter = 0;
 
-wss.on('connection', function(socket) {
+function onWebSocketConnection(socket) {
   const remoteAddr = (
       socket.upgradeReq.headers['x-forwarded-for'] || 
       socket.upgradeReq.connection.remoteAddress
@@ -215,7 +203,7 @@ wss.on('connection', function(socket) {
     }
 
     if (typeof message.type !== 'string') {
-      log("Received message without a type")
+      log("Received message without a type")  
       return;
     }
 
@@ -248,8 +236,8 @@ wss.on('connection', function(socket) {
 
         const subscription = database.streamEvents(message.minId, message.name)
             .map((list) => ({
-              type: 'events',
-              list: list,
+              type: 'events', 
+              list: list, 
               subscriptionId: message.subscriptionId
             }))
             .subscribe(send);
@@ -273,15 +261,15 @@ wss.on('connection', function(socket) {
         break;
 
       default:
-        log(`Received unknown message type ${message.type}`)
+        log(`Received unknown message type ${message.type}`)  
         return;
     }
   });
 
   socket.on('close', socket.cleanup);
-});
+}
 
-function cleanup() {
+function cleanup(wss) {
   console.log("Cleaning up")
 
   clearInterval(intervalId);
@@ -324,9 +312,6 @@ function cleanup() {
     .then(insertServerEvent.bind(null, 'server-shutdown'))
     .then(exit, exitWithError);
 }
-
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
 
 
 /*
@@ -409,7 +394,10 @@ function reduceToConnectionList(connections, event) {
 
 const connections = reduceEventStream(allEvents, reduceToConnectionList);
 
-// TODO: Create a list of open sessions
-connections.subscribe(function(e) {
-  console.log(e)
-});
+// TODO: 
+// - Restrict the open connections list to only processes that are alive.
+// - Associate a join event for each session
+// - expose these streams on the client somehow
+// connections.subscribe(function(e) {
+//   console.log(e)
+// });
