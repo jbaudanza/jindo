@@ -56,19 +56,19 @@ function query(sql, args) {
 
 const INSERT_SQL = `
   INSERT INTO events (
-      timestamp, actor, name, process_id, connection_id, session_id, ip_address, data, origin
+      timestamp, actor, name, process_id, connection_id, session_id, ip_address, data
   ) VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *
 `;
 
 
-function insertEvent(event, actor, name, processId, connectionId, sessionId, ip, origin) {
+function insertEvent(event, actor, name, processId, connectionId, sessionId, ip) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];
 
     const promise = queryWithPromise(
-      client, INSERT_SQL, [actor, name, processId, connectionId, sessionId, ip, event, origin]
+      client, INSERT_SQL, [actor, name, processId, connectionId, sessionId, ip, event]
     ).then((result) => transformEvent(result.rows[0]));
 
     promise

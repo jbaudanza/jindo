@@ -6,11 +6,10 @@ CREATE TABLE events (
   timestamp TIMESTAMP,
   ip_address INET,
   name TEXT,
-  origin TEXT,
   process_id UUID,
   session_id UUID,
   connection_id INTEGER,
   data JSONB NOT NULL
 );
 
-CREATE INDEX origin_index ON events (origin);
+CREATE INDEX name_index ON events (name);

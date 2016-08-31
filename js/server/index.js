@@ -36,8 +36,7 @@ function insertServerEvent(type) {
       processId,
       null, /* connectionId */
       null, /* sessionId */
-      null, /* ip */
-      null /* origin */);
+      null /* ip */);
 }
 
 function insertServerPing() {
@@ -90,11 +89,6 @@ const crossSiteHeaders = require('./crossSiteHeaders')
 app.options('/events', crossSiteHeaders);
 
 app.post('/events', crossSiteHeaders, function(req, res, next) {
-  if (!req.headers['origin']) {
-    res.status(400).json({error: 'Origin header required'});
-    return;
-  }
-
   const event = req.body;
 
   if ('timestamp' in event) {
@@ -153,7 +147,7 @@ app.post('/events', crossSiteHeaders, function(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, name, processId, null, sessionId, req.ip, req.headers['origin'])
+        database.insertEvent(event, actor, name, processId, null, sessionId, req.ip)
       );
     }
   }, next);
@@ -163,15 +157,9 @@ const server = app.listen((process.env['PORT'] || 5000), function() {
   console.log("HTTP server listening to", server.address().port);
 });
 
-function requireOrigin(info) {
-  if (!info.origin)
-    return 400;
-  else
-    return true;
-}
 
 // TODO: Assert the protocol is wss
-const wss = new WebSocketServer({server, verifyClient: requireOrigin});
+const wss = new WebSocketServer({server});
 
 let connectionCounter = 0;
 
@@ -180,8 +168,6 @@ wss.on('connection', function(socket) {
       socket.upgradeReq.headers['x-forwarded-for'] || 
       socket.upgradeReq.connection.remoteAddress
   );
-
-  const origin = socket.upgradeReq.headers['origin'];
 
   function log(message) {
     console.log(`${new Date().toISOString()} [${remoteAddr}]`, message)
@@ -201,7 +187,7 @@ wss.on('connection', function(socket) {
   let sessionId = null;
 
   function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, 'server-event', processId, connectionId, sessionId, remoteAddr, origin);
+    return database.insertEvent(event, actor, 'server-event', processId, connectionId, sessionId, remoteAddr);
   }
 
   log("WebSocket connection opened");
