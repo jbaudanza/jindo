@@ -11,7 +11,7 @@ const express = require('express');
 const app = new express.Router();
 
 
-const providersJson = require('../providers');
+const providersJson = require('../../providers');
 
 function getProviders(req) {
   const hostname = req.get('host');

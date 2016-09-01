@@ -5,7 +5,7 @@ const qs = require('qs');
 const uuid = require('node-uuid');
 
 const incommingMessages = new Rx.Subject();
-const connected = new Rx.ReplaySubject(1);
+export const connected = new Rx.ReplaySubject(1);
 
 const subscribes = new Rx.Subject();
 const unsubscribes = new Rx.Subject();
@@ -59,21 +59,12 @@ const messageEvent = Rx.Observable.fromEvent(window, 'message');
 
 let failures = 0;
 
-
 function getJindoHost() {
-  const tags = document.getElementsByTagName('script');
-  for (let i=0; i<tags.length; i++) {
-    const tag = tags[i];
-    const match = tag.src.match(/(https?:)\/\/([\w\.\:\d]+)\/jindo\.js$/)
-    if (match) {
-      return [match[1], match[2]];
-    }
-  }
-  return ['https:', "www.jindo.io"];
+  return [window.location.protocol, window.location.host];
 }
 
 function getJindoOrigin() {
-  return getJindoHost().join('//')
+  return window.location.origin;
 }
 
 function openSocket() {
@@ -156,7 +147,7 @@ providersPromise.then(function(value) {
 
 
 // TODO: Consider make this an observer instead: jindo.stream('foobar').next(event)
-function publish(name, event, token) {
+export function publish(name, event, token) {
   event = Object.assign({}, event, {sessionId: sessionId, name: name});
 
   // TODO: Kind of weird to put the csrf token on the providers list
@@ -182,7 +173,7 @@ function publish(name, event, token) {
 
 let authFunc = null;
 
-function authenticate(providerName) {
+export function authenticate(providerName) {
   if (!providerName)
     providerName = 'github';
 
@@ -215,7 +206,7 @@ function authenticate(providerName) {
 
 let subscriptionCounter = 0;
 
-function stream(name, howMany) {
+export function stream(name, howMany) {
   return Rx.Observable.create(function(observer) {
     const subscriptionId = subscriptionCounter;
     subscriptionCounter++;
@@ -248,16 +239,3 @@ messageEvent.subscribe(function(event) {
   authFunc(obj.token);
   authFunc = null;
 });
-
-
-const jindo = {
-  stream: stream,
-  publish: publish,
-  connected: connected,
-  authenticate: authenticate
-};
-
-
-if (typeof window === 'object') {
-  window.jindo = jindo;
-}
