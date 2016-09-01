@@ -29,7 +29,6 @@
     "express-promise": "^0.4.0",
     "jsonwebtoken": "^7.0.1",
     "lodash": "^4.14.2",
-    "morgan": "^1.7.0",
     "node-fetch": "^1.5.3",
     "node-uuid": "^1.4.7",
     "pg": "^5.0.0",

@@ -35,14 +35,7 @@ insertServerEvent('server-startup');
 const PING_INTERVAL = 15 * 60 * 1000;
 const intervalId = setInterval(insertServerPing, PING_INTERVAL);
 
-let logFormat;
 let appSecret;
-
-if (process.env['NODE_ENV'] === 'production') {
-  logFormat = 'short'
-} else {
-  logFormat = 'dev';
-}
 
 function postEvent(req, res, next) {
   const event = req.body;
@@ -114,10 +107,6 @@ function postEvent(req, res, next) {
 export function start(observables) {
   const app = express();
   app.enable('trust proxy');
-
-  app.use(require('morgan')(logFormat));
-  app.use(express.static('public'));
-
 
   app.use(require('express-promise')());
   app.use(require('body-parser').json());
