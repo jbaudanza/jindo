@@ -19,25 +19,29 @@ subscribes.subscribe(function(subscriptionInfo) {
 
 unsubscribes.subscribe(function(subscriptionId) {
   delete subscriptionState[subscriptionId];
-      // const idx = subscriptions.findIndex((o) => o.subscriptionId === subscriptionId);
-      // if (idx !== -1) {
-      //   subscriptions.splice(idx, 1);
-      // }
 });
 
-incommingMessages
-  .filter(msg => msg.type === 'events')
-  .subscribe(function(message) {
-    if (message.subscriptionId in subscriptionState) {
-      const state = subscriptionState[message.subscriptionId];
-      message.list.forEach(function(event) {
-        state.observer.next(event)
-        state.lastId = event.id;
-      });
-    }
-  });
 
-let lastId = 0;
+incommingMessages.subscribe(onMessage);
+
+
+function onMessage(message) {
+  if (message.subscriptionId in subscriptionState) {
+    const state = subscriptionState[message.subscriptionId];
+    switch (message.type) {
+      case 'error':
+        state.observer.error(message.error);
+        break;
+      case 'events':
+        message.list.forEach(function(event) {
+          state.observer.next(event)
+          state.lastId = event.id;
+        });
+        break;
+    }
+  }
+}
+
 
 const sessionId = uuid.v4();
 

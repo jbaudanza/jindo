@@ -111,7 +111,7 @@ function postEvent(req, res, next) {
 
 
 
-export function start() {
+export function start(observables) {
   const app = express();
   app.enable('trust proxy');
 
@@ -141,7 +141,7 @@ export function start() {
   // TODO: Assert the protocol is wss
   const wss = new WebSocketServer({server});
 
-  wss.on('connection', onWebSocketConnection);
+  wss.on('connection', onWebSocketConnection.bind(null, observables));
 
   process.on('SIGINT', cleanup.bind(null, wss));
   process.on('SIGTERM', cleanup.bind(null, wss));
@@ -151,7 +151,7 @@ export function start() {
 
 let connectionCounter = 0;
 
-function onWebSocketConnection(socket) {
+function onWebSocketConnection(observables, socket) {
   const remoteAddr = (
       socket.upgradeReq.headers['x-forwarded-for'] || 
       socket.upgradeReq.connection.remoteAddress
@@ -217,6 +217,7 @@ function onWebSocketConnection(socket) {
         }
         sessionId = message.sessionId;
         insertEvent({type: 'connection-open'});
+        break;
 
       case 'subscribe':
         if (typeof message.minId !== 'number') {
@@ -234,7 +235,10 @@ function onWebSocketConnection(socket) {
           break;
         }
 
-        const subscription = database.streamEvents(message.minId, message.name)
+        const fn = observables[message.name];
+
+        if (fn) {
+          const subscription = fn(message.minId, socket)
             .map((list) => ({
               type: 'events', 
               list: list, 
@@ -242,7 +246,17 @@ function onWebSocketConnection(socket) {
             }))
             .subscribe(send);
 
-        subscriptions[message.subscriptionId] = subscription;
+          subscriptions[message.subscriptionId] = subscription;
+        } else {
+          send({
+            type: 'error',
+            subscriptionId: message.subscriptionId,
+            error: {
+              code: 404,
+              message: 'Not found'
+            }
+          })
+        }
 
         break;
       case 'unsubscribe':
