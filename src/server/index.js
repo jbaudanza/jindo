@@ -38,33 +38,49 @@ const intervalId = setInterval(insertServerPing, PING_INTERVAL);
 let appSecret;
 
 function postEvent(req, res, next) {
-  const event = req.body;
+  const body = req.body;
 
-  if ('timestamp' in event) {
-    res.status(400).json({error: 'Reserverd attribute: timestamp'});
+  const errors = [];
+
+  function validate(obj, key, type) {
+    if (!(key in obj)) {
+      errors.push('Missing required attribute: ' + key)
+      return false;
+    }
+
+    if (typeof obj[key] !== type) {
+      errors.push(`Expected type of ${key} to be ${type}`)
+      return false;
+    }
+
+    return true;
+  }
+
+  function reserved(obj, key) {
+    if (key in obj) {
+      errors.push('Reserved attribute: ' + key)
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  validate(body, 'event', 'object');
+  validate(body, 'sessionId', 'string');
+  validate(body, 'name', 'string');
+
+  if (errors.length === 0) {
+    reserved(body.event, 'timestamp');
+    reserved(body.event, 'actor');
+  }
+
+  if (errors.length > 0) {
+    res.status(400).json({errors: errors});
     return;
   }
 
-  if ('actor' in event) {
-    res.status(400).json({error: 'Reserved attribute: actor'});
-    return;
-  }
-
-  if (typeof event.sessionId !== 'string') {
-    res.status(400).json({error: 'Missing required attribute: sessionId'});
-    return;    
-  }
-
-  if (typeof event.name !== 'string') {
-    res.status(400).json({error: 'Missing required attribute: name'});
-    return;    
-  }
-
-  const sessionId = event.sessionId;
-  delete event.sessionId;
-
-  const name = event.name;
-  delete event.name;
+  const sessionId = body.sessionId;
+  const name = body.name;
 
   const authorization = req.headers['authorization'];
   let actor;
@@ -84,9 +100,6 @@ function postEvent(req, res, next) {
       return;
     }
   }
-
-  // TODO:
-  //  - do some validation on the body
   
   database.shouldThrottle(req.ip, '10 seconds', 5).then(function(retryAfter) {
     if (retryAfter) {
@@ -96,7 +109,7 @@ function postEvent(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(event, actor, name, processId, null, sessionId, req.ip)
+        database.insertEvent(body.event, actor, name, processId, null, sessionId, req.ip)
       );
     }
   }, next);

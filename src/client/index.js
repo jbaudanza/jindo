@@ -152,7 +152,11 @@ providersPromise.then(function(value) {
 
 // TODO: Consider make this an observer instead: jindo.stream('foobar').next(event)
 export function publish(name, event, token) {
-  event = Object.assign({}, event, {sessionId: sessionId, name: name});
+  const body = {
+    sessionId: sessionId,
+    name: name,
+    event: event
+  };
 
   // TODO: Kind of weird to put the csrf token on the providers list
   return providersPromise.then(function(providers) {
@@ -168,7 +172,7 @@ export function publish(name, event, token) {
     return fetch(getJindoOrigin() + '/events', {
       method: 'POST',
       credentials: 'include',
-      body: JSON.stringify(event),
+      body: JSON.stringify(body),
       headers: headers
     }).then(r => r.json())
   });
