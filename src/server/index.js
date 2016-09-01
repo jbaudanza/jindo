@@ -1,19 +1,19 @@
 import express from 'express';
 import database from './database';
-import {Server as WebSocketServer} from  'ws';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import csurf from 'csurf';
-import uuid from 'node-uuid';
 import Rx from 'rxjs';
 import * as _ from 'lodash';
+import uuid from 'node-uuid';
+import ObservablesServer from './observables_server'
 
 const csrfProtection = csurf({
   cookie: true
 });
 
 const processId = uuid.v4();
-console.log("Process ID", processId);
+console.log(`Process ID ${processId}`);
 
 function insertServerEvent(type) {
   return database.insertEvent(
@@ -140,149 +140,16 @@ export function start(observables) {
     console.log("HTTP server listening to", server.address().port);
   });
 
-  // TODO: Assert the protocol is wss
-  const wss = new WebSocketServer({server});
+  const observablesServer = new ObservablesServer(server, observables, processId);
 
-  wss.on('connection', onWebSocketConnection.bind(null, observables));
+  observablesServer.log.subscribe(function(e) { console.log(e); })
+  observablesServer.events.subscribe(function(e) { console.log('event', e);})
 
-  process.on('SIGINT', cleanup.bind(null, wss));
-  process.on('SIGTERM', cleanup.bind(null, wss));
+  // TODO: fix me
+  //process.on('SIGINT', cleanup.bind(null, wss));
+  //process.on('SIGTERM', cleanup.bind(null, wss));
 
   return app;
-}
-
-let connectionCounter = 0;
-
-function onWebSocketConnection(observables, socket) {
-  const remoteAddr = (
-      socket.upgradeReq.headers['x-forwarded-for'] || 
-      socket.upgradeReq.connection.remoteAddress
-  );
-
-  function log(message) {
-    console.log(`${new Date().toISOString()} [${remoteAddr}]`, message)
-  }
-
-  function send(object) {
-    if (socket.readyState === 1) { // OPEN
-      socket.send(JSON.stringify(object));
-    } else {
-      log(`Tried to send to WebSocket in readyState: ${socket.readyState}`)
-    }
-  }
-
-  connectionCounter++;
-  const connectionId = connectionCounter;
-
-  let sessionId = null;
-
-  function insertEvent(event, actor) {
-    return database.insertEvent(event, actor, 'server-event', processId, connectionId, sessionId, remoteAddr);
-  }
-
-  log("WebSocket connection opened");
-
-  let subscriptions = {};
-
-  // This gets called when the socket is closed or the process shuts down.
-  socket.cleanup = function() {
-    log("Closing WebSocket");
-
-    _.invoke(_.values(subscriptions), 'unsubscribe');
-    subscriptions = {};
-
-    return insertEvent({type: 'connection-closed'});
-  };
-
-  socket.on('message', function(data) {
-    let message;
-
-    try {
-      message = JSON.parse(data);
-    } catch(e) {
-      log("Error parsing JSON");
-      console.error(e);
-    }
-
-    if (typeof message.type !== 'string') {
-      log("Received message without a type")  
-      return;
-    }
-
-    log("received message " + message.type);
-
-    switch (message.type) {
-      case 'hello':
-        if (typeof message.sessionId !== 'string') {
-          log('expected sessionId');
-          break;
-        }
-        sessionId = message.sessionId;
-        insertEvent({type: 'connection-open'});
-        break;
-
-      case 'subscribe':
-        if (typeof message.minId !== 'number') {
-          log("expected minId number");
-          break;
-        }
-
-        if (typeof message.subscriptionId !== 'number') {
-          log("expected subscriptionId string");
-          break;
-        }
-
-        if (message.subscriptionId in subscriptions) {
-          log("subscriptionId sent twice: " + message.subscriptionId);
-          break;
-        }
-
-        const fn = observables[message.name];
-
-        if (fn) {
-          const subscription = fn(message.minId, socket)
-            .map((list) => ({
-              type: 'events', 
-              list: list, 
-              subscriptionId: message.subscriptionId
-            }))
-            .subscribe(send);
-
-          subscriptions[message.subscriptionId] = subscription;
-        } else {
-          send({
-            type: 'error',
-            subscriptionId: message.subscriptionId,
-            error: {
-              code: 404,
-              message: 'Not found'
-            }
-          })
-        }
-
-        break;
-      case 'unsubscribe':
-        if (typeof message.subscriptionId !== 'number') {
-          log("expected subscriptionId string");
-          break;
-        }
-
-        if (!(message.subscriptionId in subscriptions)) {
-          log("subscriptionId not found: " + message.subscriptionId);
-          break;
-        }
-
-        subscriptions[message.subscriptionId].unsubscribe();
-        delete subscriptions[message.subscriptionId];
-        break;
-
-      default:
-        log(`Received unknown message type ${message.type}`)  
-        return;
-    }
-  });
-
-  socket.on('close', socket.cleanup);
 }
 
 function cleanup(wss) {

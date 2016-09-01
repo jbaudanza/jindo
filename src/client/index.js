@@ -5,7 +5,7 @@ const qs = require('qs');
 const uuid = require('node-uuid');
 
 const incommingMessages = new Rx.Subject();
-export const connected = new Rx.ReplaySubject(1);
+export const connected = new Rx.BehaviorSubject(false);
 
 const subscribes = new Rx.Subject();
 const unsubscribes = new Rx.Subject();
