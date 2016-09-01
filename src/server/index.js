@@ -5,35 +5,24 @@ import cookieParser from 'cookie-parser';
 import csurf from 'csurf';
 import Rx from 'rxjs';
 import * as _ from 'lodash';
-import uuid from 'node-uuid';
+import * as processLifecycle from './process_lifecycle';
 import ObservablesServer from './observables_server'
 
 const csrfProtection = csurf({
   cookie: true
 });
 
-const processId = uuid.v4();
-console.log(`Process ID ${processId}`);
 
-function insertServerEvent(type) {
-  return database.insertEvent(
-      {type: type},
-      null /* actorId */,
-      'server-event',
-      processId,
-      null, /* connectionId */
-      null, /* sessionId */
-      null /* ip */);
-}
-
-function insertServerPing() {
-  return insertServerEvent('server-ping');
-}
-
-insertServerEvent('server-startup');
-
-const PING_INTERVAL = 15 * 60 * 1000;
-const intervalId = setInterval(insertServerPing, PING_INTERVAL);
+// function insertServerEvent(type) {
+//   return database.insertEvent(
+//       {type: type},
+//       null /* actorId */,
+//       'server-event',
+//       processId,
+//       null, /* connectionId */
+//       null, /* sessionId */
+//       null /* ip */);
+// }
 
 let appSecret;
 
@@ -109,15 +98,24 @@ function postEvent(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(body.event, actor, name, processId, null, sessionId, req.ip)
+        database.insertEvent(body.event, actor, name, processLifecycle.processId, null, sessionId, req.ip)
       );
     }
   }, next);
 }
 
 
+function logger(message) {
+  console.log(new Date().toISOString(), message);
+}
 
 export function start(observables) {
+
+  processLifecycle.log.subscribe(logger);
+  processLifecycle.events.subscribe(function(e) { console.log('event', e);})
+
+  processLifecycle.startup();
+
   const app = express();
   app.enable('trust proxy');
 
@@ -140,60 +138,10 @@ export function start(observables) {
     console.log("HTTP server listening to", server.address().port);
   });
 
-  const observablesServer = new ObservablesServer(server, observables, processId);
-
-  observablesServer.log.subscribe(function(e) { console.log(e); })
-  observablesServer.events.subscribe(function(e) { console.log('event', e);})
-
-  // TODO: fix me
-  //process.on('SIGINT', cleanup.bind(null, wss));
-  //process.on('SIGTERM', cleanup.bind(null, wss));
+  const observablesServer = new ObservablesServer(server, observables);
+  observablesServer.log.subscribe(logger);
 
   return app;
-}
-
-function cleanup(wss) {
-  console.log("Cleaning up")
-
-  clearInterval(intervalId);
-
-  // We have to manually call the cleanup functions on each client because we
-  // want to wait for them to finish writing to the db before letting the
-  // process exit.
-  const promise = Promise.all(wss.clients.map(terminateClient));
-
-  function terminateClient(client) {
-    // Disable the close event so it's not called again when the connection
-    // terminates
-    client.removeListener('close', client.cleanup);
-
-    const promise = client.cleanup();
-    client.terminate();
-    return promise;
-  }
-
-  function exit() {
-    console.log('exiting')
-    process.exit(0);
-  }
-
-  function exitWithError(error) {
-    console.error(error);
-    process.exit(1);
-  }
-
-  setTimeout(
-    function() {
-      console.error("Cleanup timed out");
-      process.exit(2);
-    },
-    15000
-  )
-
-  promise
-    .then(function() { wss.close(); })
-    .then(insertServerEvent.bind(null, 'server-shutdown'))
-    .then(exit, exitWithError);
 }
 
 

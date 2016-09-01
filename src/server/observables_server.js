@@ -10,7 +10,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
   );
 
   function log(message) {
-    const str = `${new Date().toISOString()} [${remoteAddr}] ${message}`;
+    const str = `[${remoteAddr}] ${message}`;
     logSubject.next(str);
   }
 
@@ -39,8 +39,8 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
 
   let subscriptions = {};
 
-  // This gets called when the socket is closed or the process shuts down.
-  socket.cleanup = function() {
+  // This gets called when the socket is closed.
+  function cleanup () {
     log("Closing WebSocket");
 
     _.invoke(_.values(subscriptions), 'unsubscribe');
@@ -51,8 +51,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
     logSubject.complete();
     eventSubject.complete();
 
-    // XXX: This no longer returns a promise.
-    return insertEvent({type: 'connection-closed'});
+    insertEvent({type: 'connection-closed'});
   };
 
   socket.on('message', function(data) {
@@ -143,7 +142,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
     }
   });
 
-  socket.on('close', socket.cleanup);
+  socket.on('close', cleanup);
 }
 
 
@@ -166,7 +165,7 @@ export default class ObservablesServer {
     });
   }
 
-  cleanup() {
-    // TODO: this should iterate over the wss.clients
-  }
+  // cleanup() {
+  //   _.invoke(this.wss.clients, 'cleanup');
+  // }
 }
