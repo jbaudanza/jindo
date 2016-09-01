@@ -1,5 +1,5 @@
 import express from 'express';
-import database from './database';
+import * as database from './database';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import csurf from 'csurf';
@@ -98,7 +98,7 @@ function postEvent(req, res, next) {
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
       res.status(201).json(
-        database.insertEvent(body.event, actor, name, processLifecycle.processId, null, sessionId, req.ip)
+        database.insertEvent(body.event, actor, name, null, sessionId, req.ip)
       );
     }
   }, next);
@@ -196,7 +196,7 @@ const ticks = Rx.Observable.interval(1000)
     .map((x) => new Date())
 
 
-const allEvents = database.streamEvents(0, 'server-events');
+const allEvents = database.observable('server-events');
 
 
 function reduceEventStream(eventStream, fn) {

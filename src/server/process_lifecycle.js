@@ -1,13 +1,10 @@
 import uuid from 'node-uuid';
 import Rx from 'rxjs';
 
-export const processId = uuid.v4();
 export const events = new Rx.Subject();
 export const log = new Rx.Subject();
 
 export function startup() {
-  log.next(`Process ID ${processId}`);
-
   insertServerEvent('server-startup');
 
   const PING_INTERVAL = 15 * 60 * 1000;
@@ -27,7 +24,6 @@ function insertServerPing() {
 function insertServerEvent(type) {
   events.next({
     type: type,
-    processId: processId
   })
 }
 

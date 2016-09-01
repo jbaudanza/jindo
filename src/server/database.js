@@ -1,7 +1,8 @@
-"use strict";
+import pg from 'pg';
+import Rx from 'rxjs';
 
-const pg = require('pg');
-const Rx = require('rxjs');
+import uuid from 'node-uuid';
+const processId = uuid.v4();
 
 const conString = (
   process.env['DATABASE_URL'] || 
@@ -62,7 +63,7 @@ const INSERT_SQL = `
 `;
 
 
-function insertEvent(event, actor, name, processId, connectionId, sessionId, ip) {
+export function insertEvent(event, actor, name, connectionId, sessionId, ip) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];
@@ -80,7 +81,7 @@ function insertEvent(event, actor, name, processId, connectionId, sessionId, ip)
 }
 
 
-function shouldThrottle(ipAddress, windowSize, maxCount) {
+export function shouldThrottle(ipAddress, windowSize, maxCount) {
   const sql = `
     SELECT 
       COUNT(*) AS count, (MIN(timestamp) - (NOW() - cast($2 AS interval))) AS retryAfter 
@@ -169,7 +170,7 @@ function transformEvent(row) {
 }
 
 
-function streamEvents(minId, name) {
+export function observable(name, minId=0) {
   let querySql = "SELECT * FROM events WHERE id > $1";
   let queryParams = [];
 
@@ -183,5 +184,3 @@ function streamEvents(minId, name) {
       .then(r => r.rows.map(transformEvent))
   ));
 }
-
-module.exports = {query, notifications, streamEvents, insertEvent, shouldThrottle};
