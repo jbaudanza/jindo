@@ -154,8 +154,8 @@ export default class ObservablesServer {
     const logSubject = new Rx.Subject();
 
     this.wss = new WebSocketServer({server: httpServer});
-    this.events = eventSubject;
-    this.log = logSubject;
+    this.events = eventSubject.asObservable();
+    this.log = logSubject.asObservable();
 
     this.wss.on('connection', function(socket) {
       connectionCounter++;

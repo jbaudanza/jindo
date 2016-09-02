@@ -97,8 +97,13 @@ function postEvent(req, res, next) {
         .status(429)
         .json({error: 'Too many requests', retryAfter: retryAfter});
     } else {
+      const meta = {
+        actor: actor,
+        sessionId: sessionId,
+        ip: req.ip
+      }
       res.status(201).json(
-        database.insertEvent(body.event, actor, name, null, sessionId, req.ip)
+        database.insertEvent(name, body.event, meta)
       );
     }
   }, next);

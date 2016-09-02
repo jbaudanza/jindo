@@ -1,17 +1,17 @@
 import uuid from 'node-uuid';
 import Rx from 'rxjs';
 
-export const events = new Rx.Subject();
-export const log = new Rx.Subject();
+export const eventsSubject = new Rx.Subject();
+export const logSubject = new Rx.Subject();
+
+export const events = eventsSubject.asObservable();
+export const log = logSubject.asObservable();
 
 export function startup() {
   insertServerEvent('server-startup');
 
   const PING_INTERVAL = 15 * 60 * 1000;
   const intervalId = setInterval(insertServerPing, PING_INTERVAL);
-
-  events.complete();
-  log.complete();
 
   process.on('SIGINT', cleanup.bind(null, intervalId));
   process.on('SIGTERM', cleanup.bind(null, intervalId));
@@ -22,18 +22,18 @@ function insertServerPing() {
 }
 
 function insertServerEvent(type) {
-  events.next({
+  eventsSubject.next({
     type: type,
   })
 }
 
 function cleanup(intervalId) {
-  log.next("Cleaning up")
+  logSubject.next("Cleaning up")
 
   clearInterval(intervalId);
 
   function exit() {
-    log.next('exiting')
+    logSubject.next('exiting');
     process.exit(0);
   }
 

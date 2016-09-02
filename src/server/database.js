@@ -62,14 +62,22 @@ const INSERT_SQL = `
   RETURNING *
 `;
 
-
-export function insertEvent(event, actor, name, connectionId, sessionId, ip) {
+export function insertEvent(name, event, meta) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];
+    const values = [
+      meta.actor,
+      name,
+      processId,
+      meta.connectionId,
+      meta.sessionId,
+      meta.ip,
+      event
+    ];
 
     const promise = queryWithPromise(
-      client, INSERT_SQL, [actor, name, processId, connectionId, sessionId, ip, event]
+      client, INSERT_SQL, values
     ).then((result) => transformEvent(result.rows[0]));
 
     promise
@@ -171,13 +179,8 @@ function transformEvent(row) {
 
 
 export function observable(name, minId=0) {
-  let querySql = "SELECT * FROM events WHERE id > $1";
-  let queryParams = [];
-
-  if (name) {
-    querySql += " AND name=$2";
-    queryParams.push(name);
-  }
+  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2";
+  const queryParams = [name];
 
   return streamQuery(minId, (minId) => (
     query(querySql, [minId].concat(queryParams))
