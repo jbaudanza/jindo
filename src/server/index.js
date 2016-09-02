@@ -155,63 +155,6 @@ export function start(observables) {
  */
 
 
-function removeDeadProcesses(now, processes) {
-  return _.omitBy(processes, (p) => (now - p.lastSeen) > PING_INTERVAL )
-}
-
-
-function reduceBatchToServerList(processes, events) {
-  return events.reduce(reduceToServerList, processes);
-  return reduceToServerList(processes, event);
-}
-
-function reduceToServerList(processes, event) {
-  if (!event.processId)
-    return processes;
-
-  function build(value) {
-    const obj = {};
-    if (obj.processId) {
-      obj[event.processId] = Object.assign({}, obj.processId, value);
-    } else {
-      obj[event.processId] = value;
-    }
-
-    return Object.assign({}, processes, obj);
-  }
-
-  switch (event.type) {
-    case 'server-startup':
-      return build({startedAt: event.timestamp, lastSeen: event.timestamp});
-
-    case 'server-ping':
-      return build({lastSeen: event.timestamp});
-
-    case 'server-shutdown':
-      return _.omit(processes, event.processId);
-
-    default:
-      return processes;
-  }
-}
-
-const ticks = Rx.Observable.interval(1000)
-    .map((x) => new Date())
-
-
-const allEvents = database.observable('server-events');
-
-
-function reduceEventStream(eventStream, fn) {
-  return eventStream.scan((state, events) => events.reduce(fn, state), {});
-}
-
-let serversOnline = reduceEventStream(allEvents, reduceToServerList);
-
-serversOnline = Rx.Observable.combineLatest(ticks, serversOnline, removeDeadProcesses)
-  .distinctUntilChanged(_.isEqual)
-
-
 function reduceToConnectionList(connections, event) {
   switch (event.type) {
     case 'connection-open':
@@ -226,7 +169,7 @@ function reduceToConnectionList(connections, event) {
   return connections;
 }
 
-const connections = reduceEventStream(allEvents, reduceToConnectionList);
+//const connections = reduceEventStream(allEvents, reduceToConnectionList);
 
 // TODO: 
 // - Restrict the open connections list to only processes that are alive.
