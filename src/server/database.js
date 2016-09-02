@@ -1,7 +1,7 @@
 import pg from 'pg';
 import Rx from 'rxjs';
-
 import uuid from 'node-uuid';
+
 const processId = uuid.v4();
 
 const conString = (
@@ -62,7 +62,8 @@ const INSERT_SQL = `
   RETURNING *
 `;
 
-export function insertEvent(name, event, meta) {
+
+export function insertEvent(name, event, meta={}) {
   return openConnection().then(function(array) {
     const client = array[0];
     const done = array[1];

@@ -1,14 +1,15 @@
 import uuid from 'node-uuid';
 import Rx from 'rxjs';
+import * as database from './database';
+
 
 export const eventsSubject = new Rx.Subject();
 export const logSubject = new Rx.Subject();
 
-export const events = eventsSubject.asObservable();
 export const log = logSubject.asObservable();
 
 export function startup() {
-  insertServerEvent('server-startup');
+  insertServerEvent('startup');
 
   const PING_INTERVAL = 15 * 60 * 1000;
   const intervalId = setInterval(insertServerPing, PING_INTERVAL);
@@ -18,13 +19,11 @@ export function startup() {
 }
 
 function insertServerPing() {
-  return insertServerEvent('server-ping');
+  return insertServerEvent('ping');
 }
 
 function insertServerEvent(type) {
-  eventsSubject.next({
-    type: type,
-  })
+  return database.insertEvent('process-lifecycle', {type: type})
 }
 
 function cleanup(intervalId) {
@@ -44,12 +43,12 @@ function cleanup(intervalId) {
 
   setTimeout(
     function() {
-      log.next("Cleanup timed out");
+      logSubject.next("Cleanup timed out");
       process.exit(2);
     },
     15000
   )
 
-  insertServerEvent('server-shutdown').then(exit, exitWithError);
+  insertServerEvent('shutdown').then(exit, exitWithError);
 }
 

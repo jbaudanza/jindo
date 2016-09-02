@@ -117,8 +117,6 @@ function logger(message) {
 export function start(observables) {
 
   processLifecycle.log.subscribe(logger);
-  processLifecycle.events.subscribe(function(e) { console.log('event', e);})
-
   processLifecycle.startup();
 
   const app = express();
