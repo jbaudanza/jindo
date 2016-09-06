@@ -9,6 +9,8 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
       socket.upgradeReq.connection.remoteAddress
   );
 
+  let sessionId = null;
+
   function log(message) {
     const str = `[${remoteAddr}] ${message}`;
     logSubject.next(str);
@@ -21,8 +23,6 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
       log(`Tried to send to WebSocket in readyState: ${socket.readyState}`)
     }
   }
-
-  let sessionId = null;
 
   function insertEvent(event) {
     eventSubject.next(_.extend(
@@ -43,13 +43,12 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
   function cleanup() {
     log("Closing WebSocket");
 
-    _.invoke(_.values(subscriptions), 'unsubscribe');
+    _.values(subscriptions).forEach(function(sub) {
+      sub.unsubscribe();
+    })
     subscriptions = {};
 
     insertEvent({type: 'connection-closed'});
-
-    logSubject.complete();
-    eventSubject.complete();
   };
 
   socket.on('message', function(data) {
