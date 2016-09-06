@@ -1,18 +1,41 @@
 import pg from 'pg';
 import Rx from 'rxjs';
 import uuid from 'node-uuid';
+import Pool from 'pg-pool';
+import url from 'url';
 
 const processId = uuid.v4();
+
 
 const conString = (
   process.env['DATABASE_URL'] || 
   "postgres://localhost/observables_development"
 );
 
+// TODO: Maybe url parsing shouldnt be part of this module
+const params = url.parse(conString);
+
+const config = {
+  host: params.hostname,
+  database: params.pathname.split('/')[1]
+  //ssl: true
+};
+
+if (params.part) {
+  config.port = params.port;
+}
+
+if (params.auth) {
+  const auth = params.auth.split(':');
+  config.user = auth[0];
+  config.password = auth[1];
+}
+
+const pool = new Pool(config);
 
 function openConnection() {
   return new Promise(function(resolve, reject) {
-    pg.connect(conString, function(err, client, done) {
+    pool.connect(function(err, client, done) {
       if (err) {
         reject(err);
       } else {
@@ -23,34 +46,13 @@ function openConnection() {
 }
 
 
-function connectAndRun(callback) {
-  return openConnection().then(function(array) {
-    const client = array[0];
-    const done = array[1];
-
-    const promise = callback(client);
-    promise.then(done);
-    return promise;
-  });
-}
-
-
-function queryWithPromise(client, sql, args) {
-  return new Promise(function(resolve, reject) {
-    client.query(sql, args, function(err, result) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-}
-
-
 function query(sql, args) {
-  return connectAndRun(function(client) {
-    return queryWithPromise(client, sql, args);
+  return pool.connect().then(function(client) {
+    const p = client.query(sql, args);
+    function done() { client.release(); }
+    p.then(done, done);
+
+    return p;
   });
 }
 
@@ -64,9 +66,7 @@ const INSERT_SQL = `
 
 
 export function insertEvent(name, event, meta={}) {
-  return openConnection().then(function(array) {
-    const client = array[0];
-    const done = array[1];
+  return pool.connect().then(function(client) {
     const values = [
       meta.actor,
       name,
@@ -77,15 +77,18 @@ export function insertEvent(name, event, meta={}) {
       event
     ];
 
-    const promise = queryWithPromise(
-      client, INSERT_SQL, values
-    ).then((result) => transformEvent(result.rows[0]));
+    function done() { client.release() }
 
-    promise
-      .then(() => queryWithPromise(client, 'NOTIFY events'))
+    const persisted = client.query(INSERT_SQL, values);
+
+    persisted
+      .then(() => client.query('NOTIFY events'))
       .then(done, done);
 
-    return promise;
+    // Note that we are returning a promise that resolves *before* the
+    // notify query. This is because we want to resolve as soon as the event
+    // as been persisted in the database.
+    return persisted;
   });
 }
 
@@ -98,6 +101,7 @@ export function shouldThrottle(ipAddress, windowSize, maxCount) {
       WHERE ip_address=$1 AND timestamp > (NOW() - cast($2 AS interval))
   `;
 
+  // TODO: It might be more efficient to have this use the same pool as insertEvent
   const p = query(sql, [ipAddress, windowSize]);
 
   return p.then(r => (
@@ -108,7 +112,7 @@ export function shouldThrottle(ipAddress, windowSize, maxCount) {
 
 const notifications = new Rx.Subject();
 
-pg.connect(conString, function(err, client, done) {
+pool.connect(function(err, client, done) {
   if (err) {
     notifications.error(err);
   } else {
