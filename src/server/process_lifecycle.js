@@ -112,4 +112,43 @@ export const processesOnline = Rx.Observable.combineLatest(
   removeDeadProcesses
 ).distinctUntilChanged(_.isEqual);
 
-processesOnline.subscribe(function(e) {console.log(e)});
+
+
+function reduceToSessionList(sessions, event) {
+  switch (event.type) {
+    case 'connection-open':
+      const obj = {};
+      obj[event.sessionId] = {processId: event.processId};
+      return _.assign({}, sessions, obj);
+
+    case 'connection-closed':
+      return _.omit(sessions, event.sessionId);
+  }
+
+  return sessions;
+}
+
+function removeOfflineSessions(allSessions, processIds) {
+  return Object.keys(_.pickBy(
+      allSessions, (props, sessionId) => _.includes(processIds, props.processId)
+  ));
+}
+
+// Results in a hash that looks like:
+/*
+  {
+    [sessionId]: {
+      processId: [processId]
+    },
+    ...
+  }
+*/
+const allSessions = reduceEventStream(
+    database.observable('connection-events'), reduceToSessionList);
+
+
+export const sessions = Rx.Observable.combineLatest(
+  allSessions,
+  processesOnline.map(Object.keys),
+  removeOfflineSessions
+);

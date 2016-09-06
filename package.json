@@ -4,19 +4,16 @@
   "description": "",
   "main": "index.js",
   "files": [
-    "lib"
+    "lib",
+    "src",
+    "schema.sql",
+    "providers.json"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "babel --out-dir lib/ src/",
     "prepublish": "npm run compile"
   },
-  "files": [
-    "lib",
-    "src",
-    "schema.sql",
-    "providers.json"
-  ],
   "author": "",
   "license": "ISC",
   "dependencies": {

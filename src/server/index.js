@@ -12,18 +12,6 @@ const csrfProtection = csurf({
   cookie: true
 });
 
-
-// function insertServerEvent(type) {
-//   return database.insertEvent(
-//       {type: type},
-//       null /* actorId */,
-//       'server-event',
-//       processId,
-//       null, /* connectionId */
-//       null, /* sessionId */
-//       null /* ip */);
-// }
-
 let appSecret;
 
 function postEvent(req, res, next) {
@@ -144,37 +132,15 @@ export function start(observables) {
   const observablesServer = new ObservablesServer(server, observables);
   observablesServer.log.subscribe(logger);
 
+  // TODO: Is there someway to move this into process_lifecycle
+  observablesServer.events.subscribe(function(event) {
+    database.insertEvent('connection-events', event);
+  });
+
+  processLifecycle.sessions.subscribe(x => console.log('sessions', x))
+
   return app;
 }
 
-
-/*
- * Next steps:
- *  - map that stream onto a stream of users that are online
- *  - make that visible to clients somehow
- */
-
-
-function reduceToConnectionList(connections, event) {
-  switch (event.type) {
-    case 'connection-open':
-      const obj = {};
-      obj[event.sessionId] = {processId: event.processId};
-      return _.assign({}, connections, obj);
-
-    case 'connection-closed':
-      return _.omit(connections, event.sessionId);
-  }
-
-  return connections;
-}
-
-//const connections = reduceEventStream(allEvents, reduceToConnectionList);
-
 // TODO: 
-// - Restrict the open connections list to only processes that are alive.
 // - Associate a join event for each session
-// - expose these streams on the client somehow
-// connections.subscribe(function(e) {
-//   console.log(e)
-// });

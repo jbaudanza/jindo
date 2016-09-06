@@ -40,18 +40,16 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
   let subscriptions = {};
 
   // This gets called when the socket is closed.
-  function cleanup () {
+  function cleanup() {
     log("Closing WebSocket");
 
     _.invoke(_.values(subscriptions), 'unsubscribe');
     subscriptions = {};
 
-    eventSubject.next({type: 'connection-closed'})
+    insertEvent({type: 'connection-closed'});
 
     logSubject.complete();
     eventSubject.complete();
-
-    insertEvent({type: 'connection-closed'});
   };
 
   socket.on('message', function(data) {
