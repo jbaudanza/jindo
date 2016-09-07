@@ -146,9 +146,23 @@ function removeOfflineSessions(allSessions, processIds) {
 const allSessions = reduceEventStream(
     database.observable('connection-events'), reduceToSessionList);
 
+const sessionsSubject = new Rx.BehaviorSubject([]);
+export const sessions = sessionsSubject.asObservable();
 
-export const sessions = Rx.Observable.combineLatest(
-  allSessions,
-  processesOnline.map(Object.keys),
+const combined = Rx.Observable.combineLatest(
+  [
+    allSessions,
+    processesOnline.map(Object.keys)
+  ],
   removeOfflineSessions
 );
+
+combined.subscribe(sessionsSubject);
+
+// function logger(key) {
+//   return {
+//     next(x) { console.log(key, x); },
+//     error(err) { console.log('ERROR:' + key, err); },
+//     complete() { console.log('COMPLETED:' + key); }
+//   };
+// }

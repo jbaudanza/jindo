@@ -25,14 +25,13 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
   }
 
   function insertEvent(event) {
-    eventSubject.next(_.extend(
-      {
-        connectionId: connectionId,
-        sessionId: sessionId,
-        ipAddress: remoteAddr
-      },
-      event
-    ));
+    const meta = {
+      connectionId: connectionId,
+      sessionId: sessionId,
+      ipAddress: remoteAddr
+    };
+
+    eventSubject.next([event, meta]);
   }
 
   log("WebSocket connection opened");

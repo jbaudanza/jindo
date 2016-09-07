@@ -73,7 +73,7 @@ export function insertEvent(name, event, meta={}) {
       processId,
       meta.connectionId,
       meta.sessionId,
-      meta.ip,
+      meta.ipAddress,
       event
     ];
 

@@ -88,7 +88,7 @@ function postEvent(req, res, next) {
       const meta = {
         actor: actor,
         sessionId: sessionId,
-        ip: req.ip
+        ipAddress: req.ip
       }
       res.status(201).json(
         database.insertEvent(name, body.event, meta)
@@ -133,11 +133,9 @@ export function start(observables) {
   observablesServer.log.subscribe(logger);
 
   // TODO: Is there someway to move this into process_lifecycle
-  observablesServer.events.subscribe(function(event) {
-    database.insertEvent('connection-events', event);
+  observablesServer.events.subscribe(function([event, meta]) {
+    database.insertEvent('connection-events', event, meta);
   });
-
-  processLifecycle.sessions.subscribe(x => console.log('sessions', x))
 
   return app;
 }

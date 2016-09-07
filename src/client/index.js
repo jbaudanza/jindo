@@ -214,7 +214,7 @@ export function authenticate(providerName) {
 
 let subscriptionCounter = 0;
 
-export function stream(name, howMany) {
+export function observable(name, howMany) {
   return Rx.Observable.create(function(observer) {
     const subscriptionId = subscriptionCounter;
     subscriptionCounter++;
