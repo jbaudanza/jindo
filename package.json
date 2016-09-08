@@ -10,7 +10,7 @@
     "providers.json"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha --compilers js:babel-register",
     "compile": "babel --out-dir lib/ src/",
     "prepublish": "npm run compile"
   },
@@ -39,7 +39,9 @@
     "babel": "^6.5.2",
     "babel-cli": "^6.14.0",
     "babel-plugin-transform-flow-strip-types": "^6.14.0",
-    "babel-preset-es2015-node4": "^2.1.0"
+    "babel-preset-es2015-node4": "^2.1.0",
+    "babel-register": "^6.14.0",
+    "mocha": "^3.0.2"
   },
   "babel": {
     "presets": [
