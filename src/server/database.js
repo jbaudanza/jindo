@@ -184,7 +184,7 @@ function transformEvent(row) {
 
 
 export function observable(name, minId=0) {
-  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2";
+  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC";
   const queryParams = [name];
 
   return streamQuery(minId, (minId) => (

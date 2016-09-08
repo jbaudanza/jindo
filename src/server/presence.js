@@ -4,7 +4,6 @@ import Rx from 'rxjs';
 
 // TODO: 
 //  - handle the case where one session spans multiple processes
-//  - restarting the server seems to create phantom sessions
 
 
 function removeDeadProcesses(now, processes) {
