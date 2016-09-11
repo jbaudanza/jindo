@@ -6,7 +6,6 @@ import url from 'url';
 
 const processId = uuid.v4();
 
-
 const conString = (
   process.env['DATABASE_URL'] || 
   "postgres://localhost/observables_development"

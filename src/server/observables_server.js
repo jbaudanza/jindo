@@ -96,15 +96,27 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         const fn = observables[message.name];
 
         if (fn) {
-          const subscription = fn(message.minId, socket)
-            .map((list) => ({
-              type: 'events', 
-              list: list, 
-              subscriptionId: message.subscriptionId
-            }))
-            .subscribe(send);
+          const observable = fn(message.minId, socket);
+          if (observable /*instanceof Rx.Observable*/) {
+            const subscription = observable
+              .map((list) => ({
+                type: 'events',
+                list: list,
+                subscriptionId: message.subscriptionId
+              }))
+              .subscribe(send);
 
-          subscriptions[message.subscriptionId] = subscription;
+            subscriptions[message.subscriptionId] = subscription;
+          } else {
+            console.error(`Expected Rx.Observable instance for key ${message.name}, got: ${observable}`);
+            send({
+              type: 'error',
+              error: {
+                code: '500',
+                message: 'Internal Server Error'
+              }
+            });
+          }
         } else {
           send({
             type: 'error',

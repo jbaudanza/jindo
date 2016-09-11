@@ -4,8 +4,13 @@ const Rx = require('rxjs');
 const qs = require('qs');
 const uuid = require('node-uuid');
 
+const connectedSubject = new Rx.BehaviorSubject(false);
+
 const incommingMessages = new Rx.Subject();
-export const connected = new Rx.BehaviorSubject(false);
+export const connected = connectedSubject.asObservable();
+
+const reconnectingAtSubject = new Rx.BehaviorSubject(null);
+export const reconnectingAt = reconnectingAtSubject.asObservable();
 
 const subscribes = new Rx.Subject();
 const unsubscribes = new Rx.Subject();
@@ -119,11 +124,12 @@ function openSocket() {
     cleanup.push(unsubscribes.subscribe(sendUnsubscribe));
 
     failures = 0;
-    connected.next(true);
+    connectedSubject.next(true);
+    reconnectingAtSubject.next(null);
   });
 
   socket.addEventListener('close', function(event) {
-    connected.next(false);
+    connectedSubject.next(false);
     // TODO: maybe event.wasClean is useful?
     //https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
 
@@ -133,6 +139,7 @@ function openSocket() {
     // TODO: Check the navigator.onLine and window online/offline events
     const delay = Math.pow(2, failures) * 1000;
     setTimeout(openSocket, delay);
+    reconnectingAtSubject.next(Date.now() + delay);
 
     cleanup.forEach((sub) => sub.unsubscribe());
   });
