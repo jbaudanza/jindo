@@ -135,7 +135,6 @@ function openSocket() {
 
     failures += 1;
 
-    // TODO: expose a countdown timer somehow
     // TODO: Check the navigator.onLine and window online/offline events
     const delay = Math.pow(2, failures) * 1000;
     setTimeout(openSocket, delay);

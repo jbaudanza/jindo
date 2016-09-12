@@ -96,7 +96,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         const fn = observables[message.name];
 
         if (fn) {
-          const observable = fn(message.minId, socket);
+          const observable = fn(message.minId, socket, sessionId);
           if (observable /*instanceof Rx.Observable*/) {
             const subscription = observable
               .map((list) => ({

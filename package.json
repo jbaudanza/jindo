@@ -10,7 +10,7 @@
     "providers.json"
   ],
   "scripts": {
-    "test": "mocha --compilers js:babel-register",
+    "test": "NODE_ENV=test mocha --compilers js:babel-register",
     "compile": "babel --out-dir lib/ src/",
     "prepublish": "npm run compile"
   },
@@ -31,7 +31,7 @@
     "pg": "^6.1.0",
     "pg-pool": "^1.4.3",
     "qs": "^6.2.0",
-    "rxjs": "^5.0.0-beta.11",
+    "rxjs": "^5.0.0-beta.12",
     "whatwg-fetch": "^1.0.0",
     "ws": "^1.1.0"
   },

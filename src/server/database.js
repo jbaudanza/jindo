@@ -6,10 +6,15 @@ import url from 'url';
 
 const processId = uuid.v4();
 
-const conString = (
-  process.env['DATABASE_URL'] || 
-  "postgres://localhost/observables_development"
-);
+let conString;
+
+if (process.env['NODE_ENV'] === 'test') {
+  conString = "postgres://localhost/jindo_test";
+} else if (process.env['DATABASE_URL']) {
+  conString = process.env['DATABASE_URL'];
+} else {
+  conString = "postgres://localhost/observables_development";
+}
 
 // TODO: Maybe url parsing shouldnt be part of this module
 const params = url.parse(conString);
@@ -78,7 +83,7 @@ export function insertEvent(name, event, meta={}) {
 
     function done() { client.release() }
 
-    const persisted = client.query(INSERT_SQL, values);
+    const persisted = client.query(INSERT_SQL, values).then(result => result.rows[0]);
 
     persisted
       .then(() => client.query('NOTIFY events'))
@@ -125,33 +130,42 @@ pool.connect(function(err, client, done) {
 
 
 function streamQuery(minId, fn) {
-  let maxIdReturned = minId;
+  // TODO: If the downstream observer is a SkipSubscriber, we can move the
+  // skipping into SQL.
+  return Rx.Observable.create(function(observer) {
+    let maxIdReturned = minId;
 
-  function poll() {
-    return fn(maxIdReturned).then(function(results) {
-      let maxIdInBatch = 0;
+    function poll() {
+      return fn(maxIdReturned).then(function(results) {
+        let maxIdInBatch = 0;
 
-      const filteredResults = [];
+        const filteredResults = [];
 
-      results.forEach(function(record) {
-        if (record.id > maxIdInBatch)
-          maxIdInBatch = record.id;
+        results.forEach(function(record) {
+          if (record.id > maxIdInBatch)
+            maxIdInBatch = record.id;
 
-        if (record.id > maxIdReturned)
-          filteredResults.push(record);
+          if (record.id > maxIdReturned)
+            filteredResults.push(record);
+        });
+
+        if (maxIdInBatch > maxIdReturned)
+          maxIdReturned = maxIdInBatch;
+
+        return filteredResults;
       });
+    }
 
-      if (maxIdInBatch > maxIdReturned)
-        maxIdReturned = maxIdInBatch;
+    poll()
+      .then(
+        (results) => observer.next(results),
+        (error) => observer.error(error)
+      );
 
-      return filteredResults;
-    });
-  }
+    const subscription = notifications.flatMap(poll).subscribe(observer);
 
-  return Rx.Observable.merge(
-    poll(),
-    notifications.flatMap(poll)
-  ).filter(list => list.length > 0)
+    return () => subscription.unsubscribe();
+  }).filter(list => list.length > 0);
 }
 
 

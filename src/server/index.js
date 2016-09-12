@@ -78,7 +78,14 @@ function postEvent(req, res, next) {
     }
   }
   
-  database.shouldThrottle(req.ip, '10 seconds', 5).then(function(retryAfter) {
+  let limit;
+  if (process.env['NODE_ENV'] === 'production') {
+    limit = 5;
+  } else {
+    limit = 1000;
+  }
+
+  database.shouldThrottle(req.ip, '10 seconds', limit).then(function(retryAfter) {
     if (retryAfter) {
       res
         .set('Retry-After', retryAfter)
