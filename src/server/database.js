@@ -4,6 +4,8 @@ import uuid from 'node-uuid';
 import Pool from 'pg-pool';
 import url from 'url';
 
+require('../batches');
+
 const processId = uuid.v4();
 
 let conString;
@@ -132,7 +134,7 @@ pool.connect(function(err, client, done) {
 function streamQuery(minId, fn) {
   // TODO: If the downstream observer is a SkipSubscriber, we can move the
   // skipping into SQL.
-  return Rx.Observable.create(function(observer) {
+  const batchSteam = Rx.Observable.create(function(observer) {
     let maxIdReturned = minId;
 
     function poll() {
@@ -165,7 +167,9 @@ function streamQuery(minId, fn) {
     const subscription = notifications.flatMap(poll).subscribe(observer);
 
     return () => subscription.unsubscribe();
-  }).filter(list => list.length > 0);
+  });
+
+  return Rx.Observable.createFromBatches(batchSteam);
 }
 
 

@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import Rx from 'rxjs';
 
-
 // TODO: 
 //  - handle the case where one session spans multiple processes
 
@@ -76,10 +75,6 @@ function removeOfflineSessions(allSessions, processIds) {
   ));
 }
 
-function reduceEventStream(eventStream, fn) {
-  return eventStream.scan((state, events) => events.reduce(fn, state), {});
-}
-
 const PING_INTERVAL = 15 * 60 * 1000;
 
 const ticks =
@@ -101,11 +96,11 @@ function logger(key) {
 export function sessions(connnectionEvents, processEvents) {
   const processesOnline = Rx.Observable.combineLatest(
     ticks,
-    reduceEventStream(processEvents, reduceToServerList),
+    processEvents.batchScan(reduceToServerList, {}),
     removeDeadProcesses
   ).map(Object.keys).distinctUntilChanged(_.isEqual);
 
-  const allSessions = reduceEventStream(connnectionEvents, reduceToSessionList);
+  const allSessions = connnectionEvents.batchScan(reduceToSessionList, {});
 
   const sessionsSubject = new Rx.BehaviorSubject([]);
 

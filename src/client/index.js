@@ -4,6 +4,8 @@ const Rx = require('rxjs');
 const qs = require('qs');
 const uuid = require('node-uuid');
 
+require('../batches');
+
 const connectedSubject = new Rx.BehaviorSubject(false);
 
 const incommingMessages = new Rx.Subject();
@@ -38,10 +40,8 @@ function onMessage(message) {
         state.observer.error(message.error);
         break;
       case 'events':
-        message.list.forEach(function(event) {
-          state.observer.next(event)
-          state.lastId = event.id;
-        });
+        state.sequence += message.batch.length;
+        state.observer.next(message.batch);
         break;
     }
   }
@@ -99,7 +99,7 @@ function openSocket() {
     send({
       type: 'subscribe',
       name: subscriptionInfo.name,
-      minId: subscriptionInfo.lastId,
+      sequence: subscriptionInfo.sequence,
       subscriptionId: subscriptionInfo.subscriptionId
     });
   }
@@ -221,7 +221,7 @@ export function authenticate(providerName) {
 let subscriptionCounter = 0;
 
 export function observable(name, howMany) {
-  return Rx.Observable.create(function(observer) {
+  const batches = Rx.Observable.create(function(observer) {
     const subscriptionId = subscriptionCounter;
     subscriptionCounter++;
 
@@ -229,13 +229,15 @@ export function observable(name, howMany) {
       observer: observer,
       name: name,
       subscriptionId: subscriptionId,
-      lastId: 0
+      sequence: 0
     });
 
     return function() {
       unsubscribes.next(subscriptionId);
     }
   });
+
+  return Rx.Observable.createFromBatches(batches);
 }
 
 messageEvent.subscribe(function(event) {

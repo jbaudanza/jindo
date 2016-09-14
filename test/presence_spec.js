@@ -12,7 +12,7 @@ describe('presence.sessions', () => {
     const sessionId1 = uuid.v4();
     const sessionId2 = uuid.v4();
 
-    const processEvents = Rx.Observable.of([
+    const processEvents = Rx.Observable.from([
       {
         type: 'startup',
         processId: processId1
@@ -23,7 +23,7 @@ describe('presence.sessions', () => {
       },
     ]);
 
-    const connectionEvents = Rx.Observable.of([
+    const connectionEvents = Rx.Observable.from([
       {
         type: 'connection-open',
         processId: processId1,
@@ -40,7 +40,7 @@ describe('presence.sessions', () => {
 
     return sessions(connectionEvents, processEvents)
       .take(1)
-      .toPromise().then((list) => {
+      .forEach((list) => {
         assert.deepEqual(list.sort(), [sessionId1, sessionId2].sort())
       });
   });

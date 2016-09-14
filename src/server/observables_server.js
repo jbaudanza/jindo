@@ -78,8 +78,8 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         break;
 
       case 'subscribe':
-        if (typeof message.minId !== 'number') {
-          log("expected minId number");
+        if (typeof message.sequence !== 'number') {
+          log("expected sequence number");
           break;
         }
 
@@ -96,17 +96,19 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         const fn = observables[message.name];
 
         if (fn) {
-          const observable = fn(message.minId, socket, sessionId);
+          const observable = fn(message.sequence, socket, sessionId);
           if (observable /*instanceof Rx.Observable*/) {
             const subscription = observable
-              .map((list) => ({
+              .batches()
+              .map((batch) => ({
                 type: 'events',
-                list: list,
+                batch: batch,
                 subscriptionId: message.subscriptionId
               }))
               .subscribe(send);
 
             subscriptions[message.subscriptionId] = subscription;
+
           } else {
             console.error(`Expected Rx.Observable instance for key ${message.name}, got: ${observable}`);
             send({
