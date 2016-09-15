@@ -100,6 +100,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
           if (observable /*instanceof Rx.Observable*/) {
             const subscription = observable
               .batches()
+              .batchSkip(message.sequence)
               .map((batch) => ({
                 type: 'events',
                 batch: batch,

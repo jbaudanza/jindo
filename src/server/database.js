@@ -133,7 +133,7 @@ pool.connect(function(err, client, done) {
 
 function streamQuery(minId, fn) {
   // TODO: If the downstream observer is a SkipSubscriber, we can move the
-  // skipping into SQL.
+  // skipping into an OFFSET SQL statement.
   const batchSteam = Rx.Observable.create(function(observer) {
     let maxIdReturned = minId;
 
