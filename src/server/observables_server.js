@@ -93,14 +93,24 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
           break;
         }
 
-        const fn = observables[message.name];
+        const routeEntry = observables[message.name];
 
-        if (fn) {
+        if (routeEntry) {
+          const [fn, temp] = routeEntry;
+
           const observable = fn(message.sequence, socket, sessionId);
           if (observable /*instanceof Rx.Observable*/) {
-            const subscription = observable
-              .batches()
-              .batchSkip(message.sequence)
+
+            let restartedObservable;
+            if (temp === 'cold') {
+              restartedObservable = observable
+                .batches()
+                .batchSkip(message.sequence);
+            } else {
+              restartedObservable = observable.batches();
+            }
+
+            const subscription = restartedObservable
               .map((batch) => ({
                 type: 'events',
                 batch: batch,
@@ -158,22 +168,43 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
 
 
 export default class ObservablesServer {
-  constructor(httpServer, observables) {
+  constructor(httpServer, routeTable={}) {
+    this.routeTable = routeTable;
+
+    if (httpServer) {
+      this.attachToHttpServer(httpServer);
+    }
+  }
+
+  attachToHttpServer(httpServer) {
+    this.wss = new WebSocketServer({server: httpServer});
+    this.attachToWebSocketServer(this.wss);
+  }
+
+  attachToWebSocketServer(wss) {
     let connectionCounter = 0;
 
     const eventSubject = new Rx.Subject();
     const logSubject = new Rx.Subject();
 
-    this.wss = new WebSocketServer({server: httpServer});
     this.events = eventSubject.asObservable();
     this.log = logSubject.asObservable();
 
-    this.wss.on('connection', function(socket) {
+    this.wss = wss;
+    this.wss.on('connection', (socket) => {
       connectionCounter++;
       onWebSocketConnection(
-          socket, observables, connectionCounter, logSubject, eventSubject
+          socket, this.routeTable, connectionCounter, logSubject, eventSubject
       );
     });
+  }
+
+  hot(key, callback) {
+    this.routeTable[key] = [callback, 'hot'];
+  }
+
+  cold(key, callback) {
+    this.routeTable[key] = [callback, 'cold'];
   }
 
   // cleanup() {
