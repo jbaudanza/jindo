@@ -53,6 +53,8 @@ describe('ObservableServer', () => {
     });
   });
 
+  // TODO: This takes a second because of the reconnect timer. We could
+  // probably mock this to speed things up
   it('should handle reconnections', () => {
     return createClientServerPair().then(function([server, client]) {
       const subject = new Rx.ReplaySubject(64);

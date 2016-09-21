@@ -71,21 +71,32 @@ const INSERT_SQL = `
 `;
 
 
-export function insertEvent(name, event, meta={}) {
+// Note: this won't guarantee the order of insertion. If this is important,
+// wait for the promise to resolve or use insertEvents() instead
+export function insertEvent(key, event, meta={}) {
+  insertEvents(key, [event], meta);
+}
+
+
+export function insertEvents(key, events, meta={}) {
   return pool.connect().then(function(client) {
     const values = [
       meta.actor,
-      name,
+      key,
       processId,
       meta.connectionId,
       meta.sessionId,
-      meta.ipAddress,
-      event
+      meta.ipAddress
     ];
 
     function done() { client.release() }
 
-    const persisted = client.query(INSERT_SQL, values).then(result => result.rows[0]);
+    const persisted = Promise.all(
+      events.map((event) => (
+        client.query(INSERT_SQL, values.concat(event))
+              .then(result => result.rows[0])
+      ))
+    )
 
     persisted
       .then(() => client.query('NOTIFY events'))

@@ -7,10 +7,7 @@ import * as database from '../src/server/database';
 
 
 function insertEvents(key, count) {
-  const promises = times(count, function(i) {
-    database.insertEvent(key, {number: i+1});
-  });
-  return Promise.all(promises);
+  return database.insertEvents(key, times(count, i => ({number: i+1})));
 }
 
 describe("database.observable", () => {
@@ -42,12 +39,6 @@ describe("database.observable", () => {
     ));
   });
 
-  /*
-  This is failing sometimes:
-        AssertionError: [ 3, 4, 5 ] deepEqual [ 2, 4, 5 ]
-      + expected - actual
-
-  */
   it('should skip ahead to the offset', () => {
     const key = uuid.v4();
     const inserts = insertEvents(key, 5);
