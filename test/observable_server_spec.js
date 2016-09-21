@@ -1,27 +1,10 @@
 import assert from 'assert';
-//import EventEmitter from 'events';
 import Rx from 'rxjs';
 
 import ObservablesServer from '../src/server/observables_server';
 import ObservablesClient from '../src/client/observables_client';
 
 import http from 'http';
-
-// class MockWebSocket extends EventEmitter {
-//   constructor() {
-//     super();
-//     this.upgradeReq = {
-//       headers: {},
-//       connection: {
-//         remoteAddress: '192.168.1.100'
-//       }
-//     }
-//   }
-// }
-
-// class MockWebSocketServer extends EventEmitter {
-// }
-
 
 function createHttpServer() {
   const httpServer = http.createServer();
@@ -32,16 +15,6 @@ function createHttpServer() {
 
 
 describe('ObservableServer', () => {
-  // it('should work', () => {
-  //   const mockWss = new MockWebSocketServer();
-
-  //   const observablesServer = new ObservablesServer();
-  //   observablesServer.attachToWebSocketServer(mockWss);
-
-  //   const mockWs = new MockWebSocket();
-  //   mockWss.emit('connection', mockWs)
-  //   assert(true, 'bla')
-  // });
   it('should work', () => {
     return createHttpServer().then(function(httpServer) {
       const observablesServer = new ObservablesServer();

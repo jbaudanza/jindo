@@ -1,9 +1,9 @@
 require('whatwg-fetch');
 
-const Rx = require('rxjs');
-const qs = require('qs');
+import Rx from 'rxjs';
+import qs from 'qs';
 
-require('../batches');
+import ObservablesClient from './observables_client';
 
 function getJindoHost() {
   return [window.location.protocol, window.location.host];
@@ -17,10 +17,15 @@ const providersPromise = (
   fetch(getJindoOrigin() + '/providers.json', {credentials: 'include'}).then(r => r.json())
 );
 
-// TODO: Use this to construct an ObservablesClient
-// const [httpProtocol, hostname] = getJindoHost()
-// const protocol = httpProtocol === 'https:' ? 'wss:' : 'ws:';
-// const endpoint = `${protocol}//${hostname}`;
+const [httpProtocol, hostname] = getJindoHost()
+const protocol = httpProtocol === 'https:' ? 'wss:' : 'ws:';
+const endpoint = `${protocol}//${hostname}`;
+const observablesClient = new ObservablesClient(endpoint);
+
+// TODO: it's probably better to just expose the ObservablesClient directly
+export const reconnectingAt = observablesClient.reconnectingAt;
+export const connected = observablesClient.connected;
+export const observable = observablesClient.observable.bind(observablesClient);
 
 
 let providers = null;
@@ -32,7 +37,7 @@ providersPromise.then(function(value) {
 // TODO: Consider make this an observer instead: jindo.stream('foobar').next(event)
 export function publish(name, event, token) {
   const body = {
-    sessionId: sessionId,
+    sessionId: observablesClient.sessionId,
     name: name,
     event: event
   };

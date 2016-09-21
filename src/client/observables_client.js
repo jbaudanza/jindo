@@ -70,10 +70,10 @@ function openSocket(endpoint, privateState, failures) {
     });
   }
 
-  function sendUnsubscribe(subscriptionInfo) {
+  function sendUnsubscribe(subscriptionId) {
     send({
       type: 'unsubscribe',
-      name: subscriptionInfo.name
+      subscriptionId: subscriptionId
     });
   }
 
@@ -124,6 +124,7 @@ export default class ObservablesClient {
     this.privateState = privateState;
     this.connected = privateState.connectedSubject.asObservable();
     this.reconnectingAt = privateState.reconnectingAtSubject.asObservable();
+    this.sessionId = sessionId;
 
     openSocket(endpoint, privateState, 0);
 

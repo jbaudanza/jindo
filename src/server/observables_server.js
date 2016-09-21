@@ -143,13 +143,13 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
 
         break;
       case 'unsubscribe':
-        if (typeof message.subscriptionId !== 'number') {
-          log("expected subscriptionId string");
+        if (!(message.subscriptionId in subscriptions)) {
+          log("subscriptionId not found: " + message.subscriptionId);
           break;
         }
 
-        if (!(message.subscriptionId in subscriptions)) {
-          log("subscriptionId not found: " + message.subscriptionId);
+        if (typeof message.subscriptionId !== 'number') {
+          log("expected subscriptionId number");
           break;
         }
 
