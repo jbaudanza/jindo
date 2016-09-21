@@ -107,28 +107,16 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
           break;
         }
 
-        const routeEntry = observables[message.name];
+        const fn = observables[message.name];
 
-        if (routeEntry) {
-          const [fn, temp] = routeEntry;
-
+        if (fn) {
           const observable = fn(message.sequence, socket, sessionId);
           if (observable /*instanceof Rx.Observable*/) {
-
-            let restartedObservable;
-            if (temp === 'cold') {
-              restartedObservable = observable
-                .batches()
-                .batchSkip(message.sequence);
-            } else {
-              restartedObservable = observable.batches();
-            }
-
-            const subscription = restartedObservable
+            const subscription = observable
+              .batches()
               .subscribe(createObserver(message.subscriptionId));
 
             subscriptions[message.subscriptionId] = subscription;
-
           } else {
             console.error(`Expected Rx.Observable instance for key ${message.name}, got: ${observable}`);
             send({
@@ -209,12 +197,8 @@ export default class ObservablesServer {
     });
   }
 
-  hot(key, callback) {
-    this.routeTable[key] = [callback, 'hot'];
-  }
-
-  cold(key, callback) {
-    this.routeTable[key] = [callback, 'cold'];
+  add(key, callback) {
+    this.routeTable[key] = callback;
   }
 
   // cleanup() {

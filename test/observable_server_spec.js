@@ -30,7 +30,7 @@ function createClientServerPair() {
 describe('ObservableServer', () => {
   it('should serve a normal observable', () => {
     return createClientServerPair().then(function([server, client]) {
-      server.cold('test-observable', () => Rx.Observable.from([1,2,3,4]));
+      server.add('test-observable', () => Rx.Observable.from([1,2,3,4]));
 
       return client.observable('test-observable')
           .reduce((l, i) => l.concat(i), [])
@@ -42,7 +42,7 @@ describe('ObservableServer', () => {
 
   it('should propogate errors to the client', () => {
     return createClientServerPair().then(function([server, client]) {
-      server.cold('test-observable', () => Rx.Observable.throw('Test error'));
+      server.add('test-observable', () => Rx.Observable.throw('Test error'));
 
       return client.observable('test-observable')
         .toPromise()
@@ -50,6 +50,42 @@ describe('ObservableServer', () => {
           function(result) { throw new Error('Promise was unexpectedly fulfilled. Result: ' + result) },
           function(err) { assert.equal("Test error", err); }
         )
+    });
+  });
+
+  it('should handle reconnections', () => {
+    return createClientServerPair().then(function([server, client]) {
+      const subject = new Rx.ReplaySubject(64);
+      subject.next(1);
+      subject.next(2);
+      subject.next(3);
+
+      server.add('test-observable', (offset) => subject.skip(offset));
+
+      const observable = client.observable('test-observable')
+
+      const results = [];
+      observable.subscribe(x => results.push(x));
+
+      return observable
+        .take(3)
+        .toPromise()
+        .then(function() {
+          assert.deepEqual([1,2,3], results);
+
+          // Cause a disconnection
+          assert.equal(1, server.wss.clients.length);
+          server.wss.clients[0].close();
+
+          subject.next(4);
+          subject.next(5);
+          subject.next(6);
+
+          return observable.take(3).toPromise();
+        }).then(function() {
+          assert.deepEqual([1,2,3,4,5,6], results);
+        });
+
     });
   });
 });

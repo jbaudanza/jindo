@@ -1,19 +1,22 @@
 import assert from 'assert';
 import Rx from 'rxjs';
 import uuid from 'node-uuid';
+import {times} from 'lodash';
 
 import * as database from '../src/server/database';
 
 
+function insertEvents(key, count) {
+  const promises = times(count, function(i) {
+    database.insertEvent(key, {number: i+1});
+  });
+  return Promise.all(promises);
+}
+
 describe("database.observable", () => {
   it('should work', () => {
     const key = uuid.v4();
-
-    const inserts = Promise.all([
-      database.insertEvent(key, {number: 1}),
-      database.insertEvent(key, {number: 2}),
-      database.insertEvent(key, {number: 3})
-    ]);
+    const inserts = insertEvents(key, 3);
 
     return inserts.then(() => (
       database.observable(key)
@@ -27,12 +30,7 @@ describe("database.observable", () => {
 
   it('should batch the results', () => {
     const key = uuid.v4();
-
-    const inserts = Promise.all([
-      database.insertEvent(key, {number: 1}),
-      database.insertEvent(key, {number: 2}),
-      database.insertEvent(key, {number: 3})
-    ]);
+    const inserts = insertEvents(key, 3);
 
     return inserts.then(() => (
       database.observable(key)
@@ -44,16 +42,15 @@ describe("database.observable", () => {
     ));
   });
 
+  /*
+  This is failing sometimes:
+        AssertionError: [ 3, 4, 5 ] deepEqual [ 2, 4, 5 ]
+      + expected - actual
+
+  */
   it('should skip ahead to the offset', () => {
     const key = uuid.v4();
-
-    const inserts = Promise.all([
-      database.insertEvent(key, {number: 1}),
-      database.insertEvent(key, {number: 2}),
-      database.insertEvent(key, {number: 3}),
-      database.insertEvent(key, {number: 4}),
-      database.insertEvent(key, {number: 5})
-    ]);
+    const inserts = insertEvents(key, 5);
 
     return inserts.then(() => (
       database.observable(key, 2)
