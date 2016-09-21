@@ -131,14 +131,15 @@ pool.connect(function(err, client, done) {
 });
 
 
-function streamQuery(minId, fn) {
-  // TODO: If the downstream observer is a SkipSubscriber, we can move the
-  // skipping into an OFFSET SQL statement.
+// TODO: Is it possible to make this work with offset instead of minId?
+// I think only the first poll needs an OFFSET. once results are returned, we
+// can rely on the minId
+function streamQuery(offset, fn) {
   const batchSteam = Rx.Observable.create(function(observer) {
-    let maxIdReturned = minId;
+    let maxIdReturned = 0;
 
     function poll() {
-      return fn(maxIdReturned).then(function(results) {
+      return fn(maxIdReturned, offset).then(function(results) {
         let maxIdInBatch = 0;
 
         const filteredResults = [];
@@ -147,8 +148,10 @@ function streamQuery(minId, fn) {
           if (record.id > maxIdInBatch)
             maxIdInBatch = record.id;
 
-          if (record.id > maxIdReturned)
+          if (record.id > maxIdReturned) {
             filteredResults.push(record);
+            offset = 0;
+          }
         });
 
         if (maxIdInBatch > maxIdReturned)
@@ -200,12 +203,12 @@ function transformEvent(row) {
 }
 
 
-export function observable(name, minId=0) {
-  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC";
+export function observable(name, offset=0) {
+  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC OFFSET $3";
   const queryParams = [name];
 
-  return streamQuery(minId, (minId) => (
-    query(querySql, [minId].concat(queryParams))
+  return streamQuery(offset, (minId, offset) => (
+    query(querySql, [minId, name, offset])
       .then(r => r.rows.map(transformEvent))
   ));
 }
