@@ -65,7 +65,7 @@ function openSocket(endpoint, privateState, failures) {
     send({
       type: 'subscribe',
       name: subscriptionInfo.name,
-      sequence: subscriptionInfo.sequence,
+      offset: subscriptionInfo.offset,
       subscriptionId: subscriptionInfo.subscriptionId
     });
   }
@@ -150,7 +150,7 @@ export default class ObservablesClient {
             state.observer.complete();
             break;
           case 'events':
-            state.sequence += message.batch.length;
+            state.offset += message.batch.length;
             state.observer.next(message.batch);
             break;
         }
@@ -172,7 +172,7 @@ export default class ObservablesClient {
         observer: observer,
         name: name,
         subscriptionId: subscriptionId,
-        sequence: 0
+        offset: 0
       });
 
       return function() {

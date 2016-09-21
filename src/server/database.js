@@ -74,7 +74,7 @@ const INSERT_SQL = `
 // Note: this won't guarantee the order of insertion. If this is important,
 // wait for the promise to resolve or use insertEvents() instead
 export function insertEvent(key, event, meta={}) {
-  insertEvents(key, [event], meta);
+  return insertEvents(key, [event], meta);
 }
 
 

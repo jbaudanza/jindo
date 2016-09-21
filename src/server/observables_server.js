@@ -92,8 +92,8 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         break;
 
       case 'subscribe':
-        if (typeof message.sequence !== 'number') {
-          log("expected sequence number");
+        if (typeof message.offset !== 'number') {
+          log("expected offset number");
           break;
         }
 
@@ -110,7 +110,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         const fn = observables[message.name];
 
         if (fn) {
-          const observable = fn(message.sequence, socket, sessionId);
+          const observable = fn(message.offset, socket, sessionId);
           if (observable /*instanceof Rx.Observable*/) {
             const subscription = observable
               .batches()
