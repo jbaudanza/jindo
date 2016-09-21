@@ -24,6 +24,20 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
     }
   }
 
+  function createObserver(subscriptionId) {
+    return {
+      next(batch) {
+        send({type: 'events', batch, subscriptionId});
+      },
+      error(error) {
+        send({type: 'error', error, subscriptionId});
+      },
+      complete() {
+        send({type: 'complete', subscriptionId});
+      }
+    }
+  }
+
   function insertEvent(event) {
     const meta = {
       connectionId: connectionId,
@@ -111,12 +125,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
             }
 
             const subscription = restartedObservable
-              .map((batch) => ({
-                type: 'events',
-                batch: batch,
-                subscriptionId: message.subscriptionId
-              }))
-              .subscribe(send);
+              .subscribe(createObserver(message.subscriptionId));
 
             subscriptions[message.subscriptionId] = subscription;
 
@@ -124,6 +133,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
             console.error(`Expected Rx.Observable instance for key ${message.name}, got: ${observable}`);
             send({
               type: 'error',
+              subscriptionId: message.subscriptionId,
               error: {
                 code: '500',
                 message: 'Internal Server Error'

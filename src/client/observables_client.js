@@ -146,6 +146,9 @@ export default class ObservablesClient {
           case 'error':
             state.observer.error(message.error);
             break;
+          case 'complete':
+            state.observer.complete();
+            break;
           case 'events':
             state.sequence += message.batch.length;
             state.observer.next(message.batch);
