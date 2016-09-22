@@ -9,7 +9,7 @@ const connectedClient = Rx.Observable.bindNodeCallback(client.connect.bind(clien
 export function channel(key) {
   return connectedClient.flatMap(function(client) {
     return Rx.Observable.create(function(observer) {
-      client.query('LISTEN ' + key);
+      client.query('LISTEN ' + client.escapeIdentifier(key));
 
       function listener(event) {
         if (event.channel === key) {
@@ -20,7 +20,7 @@ export function channel(key) {
       client.on('notification', listener);
 
       return function() {
-        client.query('UNLISTEN ' + key);
+        client.query('UNLISTEN ' + client.escapeIdentifier(key));
         client.removeListener('notification', listener);
       };
     });
@@ -29,6 +29,6 @@ export function channel(key) {
 
 export function notify(channel) {
   return connectedClient.forEach(function(client) {
-    client.query('NOTIFY ' + channel);
+    client.query('NOTIFY ' + client.escapeIdentifier(channel));
   });
 }

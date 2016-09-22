@@ -3,6 +3,7 @@ import uuid from 'node-uuid';
 import Pool from 'pg-pool';
 
 import config from './pg_config';
+import * as notifier from './notifier';
 
 require('../batches');
 
@@ -60,7 +61,7 @@ export function insertEvents(key, events, meta={}) {
       meta.ipAddress
     ];
 
-    function done() { client.release() }
+    function done() { client.release(); }
 
     const persisted = Promise.all(
       events.map((event) => (
@@ -69,9 +70,9 @@ export function insertEvents(key, events, meta={}) {
       ))
     )
 
-    persisted
-      .then(() => client.query('NOTIFY events'))
-      .then(done, done);
+    notifier.notify(key);
+
+    persisted.then(done, done);
 
     // Note that we are returning a promise that resolves *before* the
     // notify query. This is because we want to resolve as soon as the events
@@ -98,22 +99,7 @@ export function shouldThrottle(ipAddress, windowSize, maxCount) {
 }
 
 
-const notifications = new Rx.Subject();
-
-pool.connect(function(err, client, done) {
-  if (err) {
-    notifications.error(err);
-  } else {
-    client.on('notification', function(event) {
-      notifications.next(event);
-    });
-
-    client.query('LISTEN events');
-  }
-});
-
-
-function streamQuery(offset, fn) {
+function streamQuery(offset, key, fn) {
   const batchSteam = Rx.Observable.create(function(observer) {
     let maxIdReturned = 0;
 
@@ -146,7 +132,7 @@ function streamQuery(offset, fn) {
         (error) => observer.error(error)
       );
 
-    const subscription = notifications.flatMap(poll).subscribe(observer);
+    const subscription = notifier.channel(key).flatMap(poll).subscribe(observer);
 
     return () => subscription.unsubscribe();
   });
@@ -182,12 +168,12 @@ function transformEvent(row) {
 }
 
 
-export function observable(name, offset=0) {
+export function observable(key, offset=0) {
   const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC OFFSET $3";
-  const queryParams = [name];
+  const queryParams = [key];
 
-  return streamQuery(offset, (minId, offset) => (
-    query(querySql, [minId, name, offset])
+  return streamQuery(offset, key, (minId, offset) => (
+    query(querySql, [minId, key, offset])
       .then(r => r.rows.map(transformEvent))
   ));
 }

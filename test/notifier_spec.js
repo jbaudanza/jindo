@@ -25,20 +25,4 @@ describe("notifier", () => {
       assert.equal(0, bar.length);
     });
   });
-
-
-  it('should notify the correct channel2', () => {
-    const promise = Promise.all([
-      collectFromChannel('foo'),
-      collectFromChannel('bar')
-    ]);
-
-    notifier.notify('foo');
-
-    return promise.then(function([foo, bar]) {
-      assert.equal(1, foo.length);
-      assert.equal(0, bar.length);
-    });
-  });
-
 });
