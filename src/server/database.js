@@ -1,41 +1,12 @@
-import pg from 'pg';
 import Rx from 'rxjs';
 import uuid from 'node-uuid';
 import Pool from 'pg-pool';
-import url from 'url';
+
+import config from './pg_config';
 
 require('../batches');
 
 const processId = uuid.v4();
-
-let conString;
-
-if (process.env['NODE_ENV'] === 'test') {
-  conString = "postgres://localhost/jindo_test";
-} else if (process.env['DATABASE_URL']) {
-  conString = process.env['DATABASE_URL'];
-} else {
-  conString = "postgres://localhost/observables_development";
-}
-
-// TODO: Maybe url parsing shouldnt be part of this module
-const params = url.parse(conString);
-
-const config = {
-  host: params.hostname,
-  database: params.pathname.split('/')[1]
-  //ssl: true
-};
-
-if (params.part) {
-  config.port = params.port;
-}
-
-if (params.auth) {
-  const auth = params.auth.split(':');
-  config.user = auth[0];
-  config.password = auth[1];
-}
 
 const pool = new Pool(config);
 
