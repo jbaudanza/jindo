@@ -103,8 +103,8 @@ export function insertEvents(key, events, meta={}) {
       .then(done, done);
 
     // Note that we are returning a promise that resolves *before* the
-    // notify query. This is because we want to resolve as soon as the event
-    // as been persisted in the database.
+    // notify query. This is because we want to resolve as soon as the events
+    // have been persisted in the database.
     return persisted;
   });
 }
@@ -142,9 +142,6 @@ pool.connect(function(err, client, done) {
 });
 
 
-// TODO: Is it possible to make this work with offset instead of minId?
-// I think only the first poll needs an OFFSET. once results are returned, we
-// can rely on the minId
 function streamQuery(offset, fn) {
   const batchSteam = Rx.Observable.create(function(observer) {
     let maxIdReturned = 0;
