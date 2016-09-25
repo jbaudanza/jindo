@@ -1,6 +1,7 @@
 import Rx from 'rxjs';
 import uuid from 'node-uuid';
 import Pool from 'pg-pool';
+import {defaults} from 'lodash';
 
 import config from './pg_config';
 import * as notifier from './notifier';
@@ -70,7 +71,9 @@ export function insertEvents(key, events, meta={}) {
       ))
     )
 
-    notifier.notify(key);
+    persisted.then(function() {
+      notifier.notify(key);
+    })
 
     persisted.then(done, done);
 
@@ -100,7 +103,7 @@ export function shouldThrottle(ipAddress, windowSize, maxCount) {
 
 
 function streamQuery(offset, key, fn) {
-  const batchSteam = Rx.Observable.create(function(observer) {
+  return Rx.Observable.create(function(observer) {
     let maxIdReturned = 0;
 
     function poll() {
@@ -136,44 +139,62 @@ function streamQuery(offset, key, fn) {
 
     return () => subscription.unsubscribe();
   });
-
-  return Rx.Observable.createFromBatches(batchSteam);
 }
 
 
 function transformEvent(row) {
-  const obj = Object.assign({}, row.data, {
+  const meta = {
     id: row.id,
     timestamp: row.timestamp
-  });
-
-  if (row.path) {
-    obj.path = row.path;
-  }
+  };
 
   if (row.process_id) {
-    obj.processId = row.process_id;
+    meta.processId = row.process_id;
   }
 
   if (row.session_id) {
-    obj.sessionId = row.session_id;
+    meta.sessionId = row.session_id;
   }
 
   if (row.actor) {
-    obj.actor = Object.assign({}, row.actor);
-    delete obj.actor.iat;
+    meta.actor = Object.assign({}, row.actor);
+    delete meta.actor.iat;
   }
 
-  return obj;
+  return [row.data, meta];
 }
 
 
-export function observable(key, offset=0) {
+/*
+ * options:
+ *   includeMetadata: (default false)
+ *   stream: (default true)
+ */
+export function observable(key, offset=0, options={}) {
+  defaults(options, {includeMetadata: false, stream: true});
+
   const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC OFFSET $3";
   const queryParams = [key];
 
-  return streamQuery(offset, key, (minId, offset) => (
-    query(querySql, [minId, key, offset])
-      .then(r => r.rows.map(transformEvent))
-  ));
+  let observable;
+  let transformFn;
+
+  if (options.includeMetadata) {
+    transformFn = transformEvent;
+  } else {
+    transformFn = (row) => row.data;
+  }
+
+  if (options.stream) {
+    observable = streamQuery(offset, key, (minId, offset) => (
+        query(querySql, [minId, key, offset])
+          .then(r => r.rows)
+        ));
+  } else {
+    observable = Rx.Observable.fromPromise(
+      query(querySql, [0, key, offset]).then(r => r.rows)
+    );
+  }
+
+  return Rx.Observable.createFromBatches(observable.map(batch => batch.map(transformFn)));
 }

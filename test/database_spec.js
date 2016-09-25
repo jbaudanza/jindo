@@ -7,23 +7,66 @@ import * as database from '../src/server/database';
 
 
 function insertEvents(key, count) {
-  return database.insertEvents(key, times(count, i => ({number: i+1})));
+  return database.insertEvents(key, times(count));
+}
+
+function reduceToList(list, i) {
+  return list.concat([i]);
 }
 
 describe("database.observable", () => {
-  it('should work', () => {
+  it('should stream a set of results', () => {
+    const key = uuid.v4();
+    insertEvents(key, 3);
+
+    const observable = database.observable(key);
+
+    return observable
+      .take(3)
+      .reduce(reduceToList, [])
+      .toPromise()
+      .then(function(results) {
+        assert.equal(3, results.length);
+
+        // Insert some more events and check to make sure they are also
+        // streamed
+        insertEvents(key, 3);
+
+        return observable.take(6).reduce(reduceToList, []).toPromise();
+      }).then(function(results) {
+        assert.equal(6, results.length);
+      })
+  });
+
+  it('should return a set of results and then end', () => {
     const key = uuid.v4();
     const inserts = insertEvents(key, 3);
 
     return inserts.then(() => (
-      database.observable(key)
-        .take(3)
-        .reduce((list, item) => list.concat(item), [])
+      database.observable(key, 0, {stream: false})
+        .reduce(reduceToList, [])
         .forEach((results) => {
           assert.equal(3, results.length);
         })
     ));
   });
+
+  it('should include the metadata', () => {
+    const key = uuid.v4();
+    const inserts = insertEvents(key, 3);
+
+    return inserts.then(() => (
+      database.observable(key, 0, {includeMetadata: true, stream: false})
+        .reduce(reduceToList, [])
+        .forEach((results) => {
+          assert.equal(3, results.length);
+
+          const [value, meta] = results[0];
+          assert('id' in meta);
+          assert('timestamp' in meta);
+        })
+    ));
+  })
 
   it('should batch the results', () => {
     const key = uuid.v4();
@@ -46,9 +89,9 @@ describe("database.observable", () => {
     return inserts.then(() => (
       database.observable(key, 2)
         .take(3)
-        .reduce((l, i) => l.concat(i), [])
+        .reduce(reduceToList, [] )
         .forEach((results) => {
-          assert.deepEqual([3,4,5], results.map(e => e.number));
+          assert.deepEqual([2,3,4], results);
         })
     ));
 
