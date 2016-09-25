@@ -170,8 +170,12 @@ function transformEvent(row) {
  *   includeMetadata: (default false)
  *   stream: (default true)
  */
-export function observable(key, offset=0, options={}) {
-  defaults(options, {includeMetadata: false, stream: true});
+export function observable(key, options={}) {
+  if (typeof options === 'number') {
+    options = {offset: options};
+  }
+
+  defaults(options, {includeMetadata: false, stream: true, offset: 0});
 
   const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC OFFSET $3";
   const queryParams = [key];
@@ -186,13 +190,13 @@ export function observable(key, offset=0, options={}) {
   }
 
   if (options.stream) {
-    observable = streamQuery(offset, key, (minId, offset) => (
+    observable = streamQuery(options.offset, key, (minId, offset) => (
         query(querySql, [minId, key, offset])
           .then(r => r.rows)
         ));
   } else {
     observable = Rx.Observable.fromPromise(
-      query(querySql, [0, key, offset]).then(r => r.rows)
+      query(querySql, [0, key, options.offset]).then(r => r.rows)
     );
   }
 

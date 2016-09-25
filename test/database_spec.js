@@ -43,7 +43,7 @@ describe("database.observable", () => {
     const inserts = insertEvents(key, 3);
 
     return inserts.then(() => (
-      database.observable(key, 0, {stream: false})
+      database.observable(key, {stream: false})
         .reduce(reduceToList, [])
         .forEach((results) => {
           assert.equal(3, results.length);
@@ -56,7 +56,7 @@ describe("database.observable", () => {
     const inserts = insertEvents(key, 3);
 
     return inserts.then(() => (
-      database.observable(key, 0, {includeMetadata: true, stream: false})
+      database.observable(key, {includeMetadata: true, stream: false})
         .reduce(reduceToList, [])
         .forEach((results) => {
           assert.equal(3, results.length);
