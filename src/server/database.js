@@ -12,18 +12,6 @@ const processId = uuid.v4();
 
 const pool = new Pool(config);
 
-function openConnection() {
-  return new Promise(function(resolve, reject) {
-    pool.connect(function(err, client, done) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve([client, done]);
-      }
-    });
-  });
-}
-
 
 function query(sql, args) {
   return pool.connect().then(function(client) {
@@ -38,7 +26,7 @@ function query(sql, args) {
 
 const INSERT_SQL = `
   INSERT INTO events (
-      timestamp, actor, name, process_id, connection_id, session_id, ip_address, data
+      timestamp, actor, key, process_id, connection_id, session_id, ip_address, data
   ) VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7)
   RETURNING *
 `;
@@ -177,7 +165,7 @@ export function observable(key, options={}) {
 
   defaults(options, {includeMetadata: false, stream: true, offset: 0});
 
-  const querySql = "SELECT * FROM events WHERE id > $1 AND name=$2 ORDER BY id ASC OFFSET $3";
+  const querySql = "SELECT * FROM events WHERE id > $1 AND key=$2 ORDER BY id ASC OFFSET $3";
   const queryParams = [key];
 
   let observable;

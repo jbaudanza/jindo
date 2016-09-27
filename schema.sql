@@ -5,11 +5,18 @@ CREATE TABLE events (
   actor JSONB,
   timestamp TIMESTAMP,
   ip_address INET,
-  name TEXT,
+  key TEXT,
   process_id UUID,
   session_id UUID,
   connection_id INTEGER,
   data JSONB NOT NULL
 );
 
-CREATE INDEX name_index ON events (name);
+CREATE INDEX key_index ON events (key);
+
+DROP TABLE key_values;
+
+CREATE TABLE key_values (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL
+)
