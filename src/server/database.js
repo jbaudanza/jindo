@@ -54,7 +54,7 @@ export function insertEvents(key, events, meta={}) {
 
     const persisted = Promise.all(
       events.map((event) => (
-        client.query(INSERT_SQL, values.concat(event))
+        client.query(INSERT_SQL, values.concat({value: event}))
               .then(result => result.rows[0])
       ))
     )
@@ -149,7 +149,7 @@ function transformEvent(row) {
     delete meta.actor.iat;
   }
 
-  return [row.data, meta];
+  return [row.data.value, meta];
 }
 
 
@@ -174,7 +174,7 @@ export function observable(key, options={}) {
   if (options.includeMetadata) {
     transformFn = transformEvent;
   } else {
-    transformFn = (row) => row.data;
+    transformFn = (row) => row.data.value;
   }
 
   if (options.stream) {

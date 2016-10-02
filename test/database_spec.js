@@ -51,6 +51,25 @@ describe("database.observable", () => {
     ));
   });
 
+  it('should work with numbers, strings, arrays and objects', () => {
+    const key = uuid.v4();
+
+    const events = [
+      123,
+      {numbers: 123},
+      [1,2,3],
+      'Hello: 123'
+    ];
+
+    return database.insertEvents(key, events).then(() => (
+      database.observable(key, {stream: false})
+        .reduce(reduceToList, [])
+        .forEach((results) => {
+          assert.deepEqual(events, results);
+        })
+    ));
+  });
+
   it('should include the metadata', () => {
     const key = uuid.v4();
     const inserts = insertEvents(key, 3);
