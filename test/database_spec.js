@@ -26,7 +26,7 @@ describe("database.observable", () => {
       .reduce(reduceToList, [])
       .toPromise()
       .then(function(results) {
-        assert.equal(3, results.length);
+        assert.equal(results.length, 3);
 
         // Insert some more events and check to make sure they are also
         // streamed
@@ -34,7 +34,7 @@ describe("database.observable", () => {
 
         return observable.take(6).reduce(reduceToList, []).toPromise();
       }).then(function(results) {
-        assert.equal(6, results.length);
+        assert.equal(results.length, 6);
       })
   });
 
@@ -46,7 +46,7 @@ describe("database.observable", () => {
       database.observable(key, {stream: false})
         .reduce(reduceToList, [])
         .forEach((results) => {
-          assert.equal(3, results.length);
+          assert.equal(results.length, 3);
         })
     ));
   });
@@ -65,7 +65,7 @@ describe("database.observable", () => {
       database.observable(key, {stream: false})
         .reduce(reduceToList, [])
         .forEach((results) => {
-          assert.deepEqual(events, results);
+          assert.deepEqual(results, events);
         })
     ));
   });
@@ -96,7 +96,7 @@ describe("database.observable", () => {
         .batches()
         .take(1)
         .forEach((results) => {
-          assert.equal(3, results.length);
+          assert.equal(results.length, 3);
         })
     ));
   });
@@ -110,7 +110,7 @@ describe("database.observable", () => {
         .take(3)
         .reduce(reduceToList, [] )
         .forEach((results) => {
-          assert.deepEqual([2,3,4], results);
+          assert.deepEqual(results, [2,3,4]);
         })
     ));
 
