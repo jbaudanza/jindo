@@ -1,7 +1,7 @@
 import Rx from 'rxjs';
 import uuid from 'node-uuid';
 import Pool from 'pg-pool';
-import {defaults} from 'lodash';
+import {defaults, mapKeys} from 'lodash';
 
 import config from './pg_config';
 import * as notifier from './notifier';
@@ -74,7 +74,20 @@ export function insertEvents(key, events, meta={}) {
 }
 
 
+function camelToUnderscore(input: string): string {
+  return input.replace(/([A-Z])/g, ($1) => "_"+$1.toLowerCase());
+}
+
+
+function underscoreToCamel(input: string): string {
+  return input.replace(/_([a-z])/g, ($1, $2) => $2.toUpperCase());
+}
+
+
 export function shouldThrottle(filters, windowSize, maxCount) {
+  // Convert the filter keys into underscores
+  filters = mapKeys(filters, (v, k) => camelToUnderscore(k));
+
   const [filterWhere, filterValues] = toSQL(filters);
 
   const ageSql = `(NOW() - cast($${filterValues.length + 1} AS interval))`;
@@ -92,6 +105,17 @@ export function shouldThrottle(filters, windowSize, maxCount) {
   return p.then(r => (
     r.rows[0].count >= maxCount) ? r.rows[0].retryafter.seconds : null
   );
+}
+
+
+export function throttled(filters, windowSize, count, fn) {
+  return shouldThrottle(filters, windowSize, count).then(function(retryAfter) {
+    if (retryAfter == null) {
+      return fn();
+    } else {
+      return Promise.reject({retryAfter: retryAfter});
+    }
+  });
 }
 
 

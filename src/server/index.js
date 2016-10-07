@@ -14,7 +14,7 @@ const csrfProtection = csurf({
 
 let appSecret;
 
-function postEvent(req, res, next) {
+function postEvent(handlers, req, res, next) {
   const body = req.body;
 
   const errors = [];
@@ -42,7 +42,7 @@ function postEvent(req, res, next) {
     }
   }
 
-  validate(body, 'event', 'object');
+  validate(body, 'value', 'object');
   validate(body, 'sessionId', 'string');
   validate(body, 'key', 'string');
 
@@ -85,23 +85,37 @@ function postEvent(req, res, next) {
     limit = 1000;
   }
 
-  database.shouldThrottle({ipAddress: req.ip}, '10 seconds', limit).then(function(retryAfter) {
-    if (retryAfter) {
-      res
-        .set('Retry-After', retryAfter)
-        .status(429)
-        .json({error: 'Too many requests', retryAfter: retryAfter});
-    } else {
-      const meta = {
-        actor: actor,
-        sessionId: sessionId,
-        ipAddress: req.ip
+  function respondWithError(code, text) {
+    res.status(code).json({
+      error: text,
+      code: code
+    });
+  }
+
+  if (handlers[body.key]) {
+    const meta = {
+      actor: actor,
+      sessionId: sessionId,
+      ipAddress: req.ip
+    };
+
+    handlers[body.key](body.value, meta).then(function(response) {
+      res.status(201).json(response);
+    }, function(error) {
+      if (error.retryAfter) {
+        res.set('Retry-After', error.retryAfter)
+          .status(429)
+          .json({error: 'Too many requests', retryAfter: error.retryAfter});
+      } else {
+        console.error("Error raised during handler: " + body.key);
+        console.error(error)
+        respondWithError(500, "Internal Server Error")
       }
-      res.status(201).json(
-        database.insertEvent(name, body.value, meta)
-      );
-    }
-  }, next);
+    });
+
+  } else {
+    respondWithError(404, 'Not found');
+  }
 }
 
 
@@ -109,7 +123,7 @@ function logger(message) {
   console.log(new Date().toISOString(), message);
 }
 
-export function start(observables) {
+export function start(observables, handlers) {
 
   processLifecycle.log.subscribe(logger);
   processLifecycle.startup();
@@ -130,7 +144,7 @@ export function start(observables) {
 
   app.options('/events', crossSiteHeaders);
 
-  app.post('/events', crossSiteHeaders, postEvent);
+  app.post('/events', crossSiteHeaders, postEvent.bind(null, handlers));
 
   const server = app.listen((process.env['PORT'] || 5000), function() {
     console.log("HTTP server listening to", server.address().port);
