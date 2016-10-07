@@ -44,11 +44,11 @@ function postEvent(req, res, next) {
 
   validate(body, 'event', 'object');
   validate(body, 'sessionId', 'string');
-  validate(body, 'name', 'string');
+  validate(body, 'key', 'string');
 
   if (errors.length === 0) {
-    reserved(body.event, 'timestamp');
-    reserved(body.event, 'actor');
+    reserved(body.value, 'timestamp');
+    reserved(body.value, 'actor');
   }
 
   if (errors.length > 0) {
@@ -85,7 +85,7 @@ function postEvent(req, res, next) {
     limit = 1000;
   }
 
-  database.shouldThrottle(req.ip, '10 seconds', limit).then(function(retryAfter) {
+  database.shouldThrottle({ipAddress: req.ip}, '10 seconds', limit).then(function(retryAfter) {
     if (retryAfter) {
       res
         .set('Retry-After', retryAfter)
@@ -98,7 +98,7 @@ function postEvent(req, res, next) {
         ipAddress: req.ip
       }
       res.status(201).json(
-        database.insertEvent(name, body.event, meta)
+        database.insertEvent(name, body.value, meta)
       );
     }
   }, next);

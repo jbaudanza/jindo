@@ -5,6 +5,7 @@ import {defaults} from 'lodash';
 
 import config from './pg_config';
 import * as notifier from './notifier';
+import {toSQL} from './filters';
 
 require('../batches');
 
@@ -73,16 +74,20 @@ export function insertEvents(key, events, meta={}) {
 }
 
 
-export function shouldThrottle(ipAddress, windowSize, maxCount) {
+export function shouldThrottle(filters, windowSize, maxCount) {
+  const [filterWhere, filterValues] = toSQL(filters);
+
+  const ageSql = `(NOW() - cast($${filterValues.length + 1} AS interval))`;
+
   const sql = `
     SELECT 
-      COUNT(*) AS count, (MIN(timestamp) - (NOW() - cast($2 AS interval))) AS retryAfter 
+      COUNT(*) AS count, (MIN(timestamp) - ${ageSql}) AS retryAfter
       FROM events 
-      WHERE ip_address=$1 AND timestamp > (NOW() - cast($2 AS interval))
+      WHERE ${filterWhere} AND timestamp > ${ageSql}
   `;
 
   // TODO: It might be more efficient to have this use the same pool as insertEvent
-  const p = query(sql, [ipAddress, windowSize]);
+  const p = query(sql, filterValues.concat(windowSize));
 
   return p.then(r => (
     r.rows[0].count >= maxCount) ? r.rows[0].retryafter.seconds : null

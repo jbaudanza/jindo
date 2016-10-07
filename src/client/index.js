@@ -34,12 +34,11 @@ providersPromise.then(function(value) {
 });
 
 
-// TODO: Consider make this an observer instead: jindo.stream('foobar').next(event)
-export function publish(name, event, token) {
+export function publish(key, value, token) {
   const body = {
     sessionId: observablesClient.sessionId,
-    name: name,
-    event: event
+    key: key,
+    value: value
   };
 
   // TODO: Kind of weird to put the csrf token on the providers list

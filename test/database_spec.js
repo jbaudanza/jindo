@@ -116,3 +116,22 @@ describe("database.observable", () => {
 
   });
 });
+
+describe("database.shouldThrottle", () => {
+  it('should throttle', () => {
+    const key = uuid.v4();
+
+    const inserts = insertEvents(key, 5);
+
+    return inserts
+        .then(() => database.shouldThrottle({key}, '10 seconds', 5))
+        .then((result) => assert.equal(typeof result, 'number'));
+  });
+
+  it('should not throttle', () => {
+    const key = uuid.v4();
+
+    return database.shouldThrottle({key}, '10 seconds', 5)
+      .then((result) => assert.equal(result, null));
+  });
+});
