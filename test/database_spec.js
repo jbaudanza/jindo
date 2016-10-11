@@ -135,3 +135,39 @@ describe("database.shouldThrottle", () => {
       .then((result) => assert.equal(result, null));
   });
 });
+
+describe('database.storeProperty', () => {
+  it('should work', () => {
+    const key = uuid.v4();
+    return database.storeProperty(key, "test-value", 1)
+      .then(() => database.fetchProperty(key))
+      .then(function(results) {
+        assert.equal('test-value', results.value);
+        assert.equal(1, results.version);
+      })
+  });
+
+  it('should not overwrite a new value with an older value', () => {
+    const key = uuid.v4();
+
+    return database.storeProperty(key, "new-value", 2)
+      .then(() => database.storeProperty(key, "old-value", 1))
+      .then(() => database.fetchProperty(key))
+      .then(function(results) {
+        assert.equal('new-value', results.value);
+        assert.equal(2, results.version);
+      });
+  });
+
+  it('should overwrite an older value with an value', () => {
+    const key = uuid.v4();
+
+    return database.storeProperty(key, "old-value", 1)
+      .then(() => database.storeProperty(key, "new-value", 2))
+      .then(() => database.fetchProperty(key))
+      .then(function(results) {
+        assert.equal('new-value', results.value);
+        assert.equal(2, results.version);
+      });
+  });
+});

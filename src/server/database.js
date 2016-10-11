@@ -18,7 +18,9 @@ function query(sql, args) {
   return pool.connect().then(function(client) {
     const p = client.query(sql, args);
     function done() { client.release(); }
-    p.then(done, done);
+    function error(err) { done(); throw err; }
+
+    p.then(done, error);
 
     return p;
   });
@@ -218,4 +220,56 @@ export function observable(key, options={}) {
   }
 
   return Rx.Observable.createFromBatches(observable.map(batch => batch.map(transformFn)));
+}
+
+export function fetchProperty(key) {
+  return query(
+    "SELECT value, version FROM jindo_properties WHERE key=$1", [key]
+  ).then(function(results) {
+    if (results.rowCount > 0) {
+      const row = results.rows[0];
+      return {
+        value: row.value.v,
+        version: row.version
+      };
+    }
+  });
+}
+
+/*
+   This query is designed to update the row even if doesn't make any changes.
+   This is because we need to detect the case when the row doesn't exist and
+   needs to be inserted.
+   params: [version, value, key]
+ */
+const UPDATE_PROPERTY_SQL = `
+  UPDATE
+    jindo_properties
+  SET
+    value=(CASE WHEN version<$1 THEN $2 ELSE value END),
+    version=GREATEST($1, version)
+  WHERE key=$3
+`;
+
+const INSERT_PROPERTY_SQL = `
+  INSERT INTO jindo_properties (version, value, key) VALUES ($1, $2, $3)
+`;
+
+export function storeProperty(key, value, version) {
+  return pool.connect().then(function(client) {
+    function done() { client.release(); }
+    function error(err) { done(); throw err; }
+
+    const params = [version, {v: value}, key];
+
+    return client
+      .query(UPDATE_PROPERTY_SQL, params)
+      .then(function(result) {
+        // Update failed, do an insert instead
+        if (result.rowCount === 0) {
+          return client.query(INSERT_PROPERTY_SQL, params);
+        }
+      })
+      .then(done, error);
+  });
 }
