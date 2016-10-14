@@ -6,7 +6,7 @@ import Rx from 'rxjs';
 
 
 function removeDeadProcesses(now, processes) {
-  return _.omitBy(processes, (p) => (now - p.lastSeen) > PING_INTERVAL )
+  return _.omitBy(processes, (p) => (now - p.lastSeen) > HEARTBEAT_INTERVAL )
 }
 
 
@@ -33,7 +33,7 @@ function reduceToServerList(processes, event) {
     case 'startup':
       return build({startedAt: event.timestamp, lastSeen: event.timestamp});
 
-    case 'ping':
+    case 'heartbeat':
       return build({lastSeen: event.timestamp});
 
     case 'shutdown':
@@ -75,12 +75,12 @@ function removeOfflineSessions(allSessions, processIds) {
   ));
 }
 
-const PING_INTERVAL = 15 * 60 * 1000;
+const HEARTBEAT_INTERVAL = 15 * 60 * 1000;
 
 const ticks =
     Rx.Observable.merge(
         Rx.Observable.of(0),
-        Rx.Observable.interval(PING_INTERVAL)
+        Rx.Observable.interval(HEARTBEAT_INTERVAL)
     ).map((x) => new Date())
 
 

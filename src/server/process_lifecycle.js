@@ -7,19 +7,19 @@ export const eventsSubject = new Rx.Subject();
 export const logSubject = new Rx.Subject();
 
 export const log = logSubject.asObservable();
-const PING_INTERVAL = 15 * 60 * 1000;
+const HEARTBEAT_INTERVAL = 15 * 60 * 1000;
 
 export function startup() {
   insertServerEvent('startup');
 
-  const intervalId = setInterval(insertServerPing, PING_INTERVAL);
+  const intervalId = setInterval(insertServerHeartbeat, HEARTBEAT_INTERVAL);
 
   process.on('SIGINT', cleanup.bind(null, intervalId));
   process.on('SIGTERM', cleanup.bind(null, intervalId));
 }
 
-function insertServerPing() {
-  return insertServerEvent('ping');
+function insertServerHeartbeat() {
+  return insertServerEvent('heartbeat');
 }
 
 function insertServerEvent(type) {
