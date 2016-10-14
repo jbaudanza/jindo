@@ -196,8 +196,20 @@ export function observable(key, options={}) {
 
   defaults(options, {includeMetadata: false, stream: true, offset: 0});
 
-  const querySql = "SELECT * FROM events WHERE id > $1 AND key=$2 ORDER BY id ASC OFFSET $3";
-  const queryParams = [key];
+  function buildQuery(minId, offset) {
+    let filters = Object.assign({key: key, id: {$gt: minId}}, options.filters);
+
+    // Convert the filter keys into underscores
+    filters = mapKeys(filters, (v, k) => camelToUnderscore(k));
+
+    const [where, params] = toSQL(filters);
+    params.push(offset);
+
+    return [
+      `SELECT * FROM events WHERE ${where} ORDER BY id ASC OFFSET $${params.length}`,
+      params
+    ];
+  }
 
   let observable;
   let transformFn;
@@ -210,13 +222,17 @@ export function observable(key, options={}) {
 
   if (options.stream) {
     observable = streamQuery(options.offset, key, (minId, offset) => (
-        query(querySql, [minId, key, offset])
+        query(...buildQuery(minId, offset))
           .then(r => r.rows)
         ));
   } else {
-    observable = Rx.Observable.fromPromise(
-      query(querySql, [0, key, options.offset]).then(r => r.rows)
-    );
+    observable = Rx.Observable.create(function(observer) {
+      query(...buildQuery(0, options.offset))
+          .then(
+            function(r) { observer.next(r.rows); observer.complete(); },
+            function(error) { observer.error(error); }
+          )
+    });
   }
 
   return Rx.Observable.createFromBatches(observable.map(batch => batch.map(transformFn)));

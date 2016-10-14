@@ -85,6 +85,28 @@ describe("database.observable", () => {
           assert('timestamp' in meta);
         })
     ));
+  });
+
+  it('should filter by metadata', () => {
+    const key = uuid.v4();
+    const inserts = Promise.all([
+      database.insertEvent(key, 1, {ipAddress: '192.168.1.1'}),
+      database.insertEvent(key, 2, {ipAddress: '192.168.1.2'}),
+      database.insertEvent(key, 3, {ipAddress: '192.168.1.1'}),
+      database.insertEvent(key, 4, {ipAddress: '192.168.1.2'})
+    ]);
+
+    const filters = {ipAddress: '192.168.1.1'};
+
+    const source = database.observable(key, {stream: false, filters: filters});
+
+    return inserts.then(function() {
+      return source
+          .reduce(reduceToList, [])
+          .forEach(function(results) {
+            assert.deepEqual(results, [1,3])
+          })
+    });
   })
 
   it('should batch the results', () => {
