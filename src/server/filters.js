@@ -26,7 +26,15 @@ export function toSQL(filters) {
       }
     }
 
-    conditions.push(`${key} ${operator} $${conditions.length + 1}`);
+    let placeholder;
+    if (Array.isArray(value)) {
+      operator = '= ANY';
+      placeholder = `($${conditions.length + 1})`;
+    } else {
+      placeholder = `$${conditions.length + 1}`;
+    }
+
+    conditions.push(`${key} ${operator} ${placeholder}`);
     values.push(value);
   });
 
