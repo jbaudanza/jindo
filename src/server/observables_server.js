@@ -2,6 +2,7 @@ import {Server as WebSocketServer} from 'ws';
 import Rx from 'rxjs';
 import _ from 'lodash';
 
+require('../batches');
 
 function onWebSocketConnection(socket, observables, connectionId, logSubject, eventSubject) {
   const remoteAddr = (
@@ -30,6 +31,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         send({type: 'events', batch, subscriptionId});
       },
       error(error) {
+        log(error);
         send({type: 'error', error, subscriptionId});
       },
       complete() {
@@ -79,8 +81,6 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
       return;
     }
 
-    log("received message " + message.type);
-
     switch (message.type) {
       case 'hello':
         if (typeof message.sessionId !== 'string') {
@@ -89,6 +89,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         }
         sessionId = message.sessionId;
         insertEvent({type: 'connection-open'});
+        log("open session " + message.sessionId);
         break;
 
       case 'subscribe':
@@ -109,14 +110,20 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
 
         const fn = observables[message.name];
 
+        log('subscribing to ' + message.name);
+
         if (fn) {
           const observable = fn(message.offset, socket, sessionId);
-          if (observable /*instanceof Rx.Observable*/) {
-            const subscription = observable
-              .batches()
-              .subscribe(createObserver(message.subscriptionId));
+          if (observable && typeof observable.subscribe === 'function') {
+            if (typeof observable.subscribe === 'function') {
+              const subscription = observable
+                .batches()
+                .subscribe(createObserver(message.subscriptionId));
 
-            subscriptions[message.subscriptionId] = subscription;
+              subscription.name = message.name;
+
+              subscriptions[message.subscriptionId] = subscription;
+            }
           } else {
             console.error(`Expected Rx.Observable instance for key ${message.name}, got: ${observable}`);
             send({
@@ -140,6 +147,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
         }
 
         break;
+
       case 'unsubscribe':
         if (!(message.subscriptionId in subscriptions)) {
           log("subscriptionId not found: " + message.subscriptionId);
@@ -151,6 +159,7 @@ function onWebSocketConnection(socket, observables, connectionId, logSubject, ev
           break;
         }
 
+        log('unsubscribing from ' + subscriptions[message.subscriptionId].name);
         subscriptions[message.subscriptionId].unsubscribe();
         delete subscriptions[message.subscriptionId];
         break;
