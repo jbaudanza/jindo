@@ -26,6 +26,7 @@ const observablesClient = new ObservablesClient(endpoint);
 export const reconnectingAt = observablesClient.reconnectingAt;
 export const connected = observablesClient.connected;
 export const observable = observablesClient.observable.bind(observablesClient);
+export const reconnect = observablesClient.reconnect;
 
 
 let providers = null;

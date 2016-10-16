@@ -47,10 +47,20 @@ function isOffline() {
 
 
 function openSocket(endpoint, privateState, failures) {
-  const socket = new WebSocketClient(endpoint);
+  // Don't open two WebSockets at once.
+  if (privateState.socket)
+    return;
+
+  if (privateState.reconnectTimerId) {
+    clearTimeout(privateState.reconnectTimerId);
+    privateState.reconnectTimerId = null;
+  }
+
+
+  privateState.socket = new WebSocketClient(endpoint);
   const cleanup = [];
 
-  const messageStream = Rx.Observable.fromEvent(socket, 'message')
+  const messageStream = Rx.Observable.fromEvent(privateState.socket, 'message')
       .map(e => JSON.parse(e.data));
 
   cleanup.push(
@@ -58,7 +68,7 @@ function openSocket(endpoint, privateState, failures) {
   );
 
   function send(object) {
-    socket.send(JSON.stringify(object));
+    privateState.socket.send(JSON.stringify(object));
   }
 
   function sendSubscribe(subscriptionInfo) {
@@ -77,7 +87,7 @@ function openSocket(endpoint, privateState, failures) {
     });
   }
 
-  socket.addEventListener('open', function() {
+  privateState.socket.addEventListener('open', function() {
     send({
       type: 'hello', sessionId: sessionId
     });
@@ -94,14 +104,15 @@ function openSocket(endpoint, privateState, failures) {
     privateState.reconnectingAtSubject.next(null);
   });
 
-  socket.addEventListener('close', function(event) {
+  privateState.socket.addEventListener('close', function(event) {
+    privateState.socket = null;
     privateState.connectedSubject.next(false);
-    // TODO: maybe event.wasClean is useful?
-    //https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
 
-    // TODO: Check the navigator.onLine and window online/offline events
-    const delay = Math.pow(2, failures) * 1000;
-    setTimeout(() => openSocket(endpoint, privateState, failures+1), delay);
+    // This will max out around 4 minutes
+    const delay = Math.pow(2, Math.min(failures, 8)) * 1000;
+    privateState.reconnectTimerId = setTimeout(
+      () => openSocket(endpoint, privateState, failures+1), delay
+    );
     privateState.reconnectingAtSubject.next(Date.now() + delay);
 
     cleanup.forEach((sub) => sub.unsubscribe());
@@ -118,7 +129,9 @@ export default class ObservablesClient {
       subscriptionState: {},
       subscribes: new Rx.Subject(),
       unsubscribes: new Rx.Subject(),
-      subscriptionCounter: 0
+      subscriptionCounter: 0,
+      reconnectTimerId: null,
+      socket: null
     }
 
     this.privateState = privateState;
@@ -126,7 +139,13 @@ export default class ObservablesClient {
     this.reconnectingAt = privateState.reconnectingAtSubject.asObservable();
     this.sessionId = sessionId;
 
-    openSocket(endpoint, privateState, 0);
+    this.reconnect = function() {
+      openSocket(endpoint, privateState, 0);
+    }
+
+    window.addEventListener("online", this.reconnect.bind(this));
+
+    this.reconnect();
 
     privateState.subscribes.subscribe(function(subscriptionInfo) {
       privateState.subscriptionState[subscriptionInfo.subscriptionId] = subscriptionInfo;
