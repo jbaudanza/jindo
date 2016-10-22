@@ -1,6 +1,8 @@
 import * as _ from 'lodash';
 import Rx from 'rxjs';
 
+import {batchScan} from 'rxremote/batches';
+
 // TODO: 
 //  - handle the case where one session spans multiple processes
 
@@ -96,11 +98,11 @@ function logger(key) {
 export function sessions(connnectionEvents, processEvents) {
   const processesOnline = Rx.Observable.combineLatest(
     ticks,
-    processEvents.batchScan(reduceToServerList, {}),
+    batchScan.call(processEvents, reduceToServerList, {}),
     removeDeadProcesses
   ).map(Object.keys).distinctUntilChanged(_.isEqual);
 
-  const allSessions = connnectionEvents.batchScan(reduceToSessionList, {});
+  const allSessions = batchScan.call(connnectionEvents, reduceToSessionList, {});
 
   const sessionsSubject = new Rx.BehaviorSubject([]);
 

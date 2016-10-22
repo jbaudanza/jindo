@@ -7,7 +7,7 @@ import config from './pg_config';
 import * as notifier from './notifier';
 import {toSQL} from './filters';
 
-require('../batches');
+import * as batches from 'rxremote/batches';
 
 const processId = uuid.v4();
 
@@ -235,7 +235,7 @@ export function observable(key, options={}) {
     });
   }
 
-  return Rx.Observable.createFromBatches(observable.map(batch => batch.map(transformFn)));
+  return batches.unwrapBatches(observable.map(batch => batch.map(transformFn)));
 }
 
 export function fetchProperty(key) {

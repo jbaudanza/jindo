@@ -3,7 +3,7 @@ require('whatwg-fetch');
 import Rx from 'rxjs';
 import qs from 'qs';
 
-import ObservablesClient from './observables_client';
+import ObservablesClient from 'rxremote/client';
 
 function getJindoHost() {
   return [window.location.protocol, window.location.host];

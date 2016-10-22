@@ -6,7 +6,8 @@ import csurf from 'csurf';
 import Rx from 'rxjs';
 import * as _ from 'lodash';
 import * as processLifecycle from './process_lifecycle';
-import ObservablesServer from './observables_server'
+import ObservablesServer from 'rxremote/server';
+
 
 const csrfProtection = csurf({
   cookie: true
