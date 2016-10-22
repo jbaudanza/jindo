@@ -12,7 +12,8 @@
   "scripts": {
     "test": "NODE_ENV=test mocha --compilers js:babel-register",
     "compile": "babel --out-dir lib/ src/",
-    "prepublish": "npm run compile"
+    "prepublish": "npm run compile",
+    "postinstall": "babel --out-dir node_modules/rxremote/lib node_modules/rxremote/src"
   },
   "author": "",
   "license": "ISC",
@@ -32,16 +33,17 @@
     "pg-pool": "^1.4.3",
     "qs": "^6.2.0",
     "rxjs": "^5.0.0-rc.1",
-    "rxremote": "file:../rxremote",
+    "rxremote": "jbaudanza/rxremote#578f1e13",
     "whatwg-fetch": "^1.0.0",
     "ws": "^1.1.0"
   },
   "devDependencies": {
-    "babel": "^6.5.2",
-    "babel-cli": "^6.14.0",
+    "babel-cli": "^6.9.0",
+    "babel-core": "^6.9.0",
+    "babel-eslint": "^6.0.4",
     "babel-plugin-transform-flow-strip-types": "^6.14.0",
-    "babel-preset-es2015-node4": "^2.1.0",
-    "babel-register": "^6.14.0",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-3": "^6.5.0",
     "mocha": "^3.0.2"
   },
   "browserify": {
@@ -58,7 +60,8 @@
   },
   "babel": {
     "presets": [
-      "es2015-node4"
+      "es2015",
+      "stage-3"
     ],
     "plugins": [
       "transform-flow-strip-types"
