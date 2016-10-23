@@ -12,8 +12,7 @@
   "scripts": {
     "test": "NODE_ENV=test mocha --compilers js:babel-register",
     "compile": "babel --out-dir lib/ src/",
-    "prepublish": "npm run compile",
-    "postinstall": "babel --out-dir node_modules/rxremote/lib node_modules/rxremote/src"
+    "prepublish": "npm run compile"
   },
   "author": "",
   "license": "ISC",
@@ -33,7 +32,7 @@
     "pg-pool": "^1.4.3",
     "qs": "^6.2.0",
     "rxjs": "^5.0.0-rc.1",
-    "rxremote": "jbaudanza/rxremote#578f1e13",
+    "rxremote": "jbaudanza/rxremote#247a38ee",
     "whatwg-fetch": "^1.0.0",
     "ws": "^1.1.0"
   },
