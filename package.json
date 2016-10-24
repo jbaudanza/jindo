@@ -32,7 +32,7 @@
     "pg-pool": "^1.4.3",
     "qs": "^6.2.0",
     "rxjs": "^5.0.0-rc.1",
-    "rxremote": "jbaudanza/rxremote#247a38ee",
+    "rxremote": "^0.0.1",
     "whatwg-fetch": "^1.0.0",
     "ws": "^1.1.0"
   },
