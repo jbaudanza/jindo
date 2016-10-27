@@ -132,6 +132,10 @@ export function start(observables, handlers) {
   const app = express();
   app.enable('trust proxy');
 
+  if (app.settings.env === 'production') {
+    app.use(require('./redirect'));
+  }
+
   app.use(require('express-promise')());
   app.use(require('body-parser').json());
 
