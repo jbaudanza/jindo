@@ -1,6 +1,6 @@
 {
   "name": "jindo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "index.js",
   "files": [
@@ -32,7 +32,7 @@
     "pg-pool": "^1.4.3",
     "qs": "^6.2.0",
     "rxjs": "^5.0.0-rc.1",
-    "rxremote": "^0.0.1",
+    "rxremote": "0.0.2",
     "whatwg-fetch": "^1.0.0",
     "ws": "^1.1.0"
   },
