@@ -26,7 +26,7 @@ export function channel(key) {
 
       function listener(event) {
         if (event.channel === key) {
-          observer.next(event);
+          observer.next(event.payload);
         }      
       }
 
@@ -44,8 +44,10 @@ export function channel(key) {
   });
 }
 
-export function notify(channel) {
+export function notify(channel, message) {
   return connectedClient.forEach(function(client) {
-    client.query('NOTIFY ' + client.escapeIdentifier(channel));
+    client.query(
+      'NOTIFY ' + client.escapeIdentifier(channel) + ", " + client.escapeLiteral(message)
+    );
   });
 }

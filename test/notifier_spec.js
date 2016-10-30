@@ -22,11 +22,11 @@ describe("notifier", () => {
       collectFromChannel('bar')
     ]);
 
-    notifier.notify('foo');
+    notifier.notify('foo', 'hello');
 
     return promise.then(function([foo, bar]) {
-      assert.equal(1, foo.length);
-      assert.equal(0, bar.length);
+      assert.deepEqual(foo, ['hello']);
+      assert.deepEqual(bar, []);
     });
   });
 
