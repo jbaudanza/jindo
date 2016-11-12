@@ -2285,13 +2285,19 @@ rxjs@^5.0.0-rc.1:
   dependencies:
     symbol-observable "^1.0.1"
 
-rxremote@0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/rxremote/-/rxremote-0.0.2.tgz#707b797c07281acaf698e68a15a9f9725aa121c7"
+rxjs@5.0.0-rc.2:
+  version "5.0.0-rc.2"
+  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-5.0.0-rc.2.tgz#d38206f50eeb1e77b0832a74c1c2adeeed5ec2b7"
+  dependencies:
+    symbol-observable "^1.0.1"
+
+rxremote@0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/rxremote/-/rxremote-0.0.3.tgz#6b753fc0c34dbb33003ae4231408ca2fad7a2f5c"
   dependencies:
     babel-polyfill "^6.9.1"
     node-uuid "^1.4.7"
-    rxjs "^5.0.0-rc.1"
+    rxjs "5.0.0-rc.2"
     ws "^1.1.1"
 
 semver-regex@^1.0.0:
