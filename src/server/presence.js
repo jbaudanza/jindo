@@ -1,7 +1,23 @@
 import * as _ from 'lodash';
 import Rx from 'rxjs';
 
-import {batchScan} from 'rxremote/batches';
+// TODO: This are duplicated in RxEventStore module. Consolidate this
+// somehow
+function batchedScan(project, seed) {
+  return Rx.Observable.create((observer) => {
+    let baseIndex = 0;
+
+    return this.scan(function(acc, batch) {
+      const result = batch.reduce(function(innerAcc, currentValue, index) {
+        return project(innerAcc, currentValue, baseIndex + index);
+      }, acc);
+
+      baseIndex += batch.length;
+
+      return result;
+    }, seed).subscribe(observer);
+  });
+};
 
 // TODO: 
 //  - handle the case where one session spans multiple processes
@@ -98,7 +114,7 @@ function logger(key) {
 export function sessions(connnectionEvents, processEvents) {
   const processesOnline = Rx.Observable.combineLatest(
     ticks,
-    batchScan.call(processEvents, reduceToServerList, {}),
+    batchedScan.call(processEvents, reduceToServerList, {}),
     removeDeadProcesses
   ).map(Object.keys).distinctUntilChanged(_.isEqual);
 
