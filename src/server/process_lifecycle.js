@@ -11,10 +11,10 @@ const HEARTBEAT_INTERVAL = 15 * 60 * 1000;
      exit until the shutdown event is persisted or a timeout elapses.
 */
 export function startup(insertEvent) {
-  insertEvent({type: 'startup'});
+  insertEvent('startup');
 
   const intervalId = setInterval(
-    () => insertEvent({type: 'heartbeat'})
+    () => insertEvent('heartbeat')
   , HEARTBEAT_INTERVAL);
 
   process.on('SIGINT', cleanup);
@@ -43,6 +43,6 @@ export function startup(insertEvent) {
       15000
     )
 
-    insertEvent({type: 'shutdown'}).then(exit, exitWithError);
+    insertEvent('shutdown').then(exit, exitWithError);
   }
 }

@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import Rx from 'rxjs';
 
-// TODO: This are duplicated in RxEventStore module. Consolidate this
+// TODO: This is duplicated in RxEventStore module. Consolidate this
 // somehow
 function batchedScan(project, seed) {
   return Rx.Observable.create((observer) => {
@@ -27,11 +27,6 @@ function removeDeadProcesses(now, processes) {
   return _.omitBy(processes, (p) => (now - p.lastSeen) > HEARTBEAT_INTERVAL )
 }
 
-
-function reduceBatchToServerList(processes, events) {
-  return events.reduce(reduceToServerList, processes);
-}
-
 function reduceToServerList(processes, event) {
   if (!event.processId)
     return processes;
@@ -47,7 +42,7 @@ function reduceToServerList(processes, event) {
     return Object.assign({}, processes, obj);
   }
 
-  switch (event.type) {
+  switch (event.value) {
     case 'startup':
       return build({startedAt: event.timestamp, lastSeen: event.timestamp});
 
@@ -73,7 +68,7 @@ function reduceToServerList(processes, event) {
   }
 */
 function reduceToSessionList(sessions, event) {
-  switch (event.type) {
+  switch (event.value) {
     case 'connection-open':
       const obj = {};
       obj[event.sessionId] = {processId: event.processId};
@@ -118,7 +113,7 @@ export function sessions(connectionEvents, processEvents) {
     removeDeadProcesses
   ).map(Object.keys).distinctUntilChanged(_.isEqual);
 
-  const allSessions = batchScan.call(connectionEvents, reduceToSessionList, {});
+  const allSessions = batchedScan.call(connectionEvents, reduceToSessionList, {});
 
   const sessionsSubject = new Rx.BehaviorSubject([]);
 
