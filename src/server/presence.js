@@ -111,14 +111,14 @@ function logger(key) {
 }
 
 // Returns an observable of session ids that are currently online.
-export function sessions(connnectionEvents, processEvents) {
+export function sessions(connectionEvents, processEvents) {
   const processesOnline = Rx.Observable.combineLatest(
     ticks,
     batchedScan.call(processEvents, reduceToServerList, {}),
     removeDeadProcesses
   ).map(Object.keys).distinctUntilChanged(_.isEqual);
 
-  const allSessions = batchScan.call(connnectionEvents, reduceToSessionList, {});
+  const allSessions = batchScan.call(connectionEvents, reduceToSessionList, {});
 
   const sessionsSubject = new Rx.BehaviorSubject([]);
 

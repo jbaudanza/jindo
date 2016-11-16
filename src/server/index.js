@@ -4,16 +4,12 @@ import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import csurf from 'csurf';
 import Rx from 'rxjs';
-import * as _ from 'lodash';
-import * as processLifecycle from './process_lifecycle';
 import ObservablesServer from 'rxremote/server';
 
 
 const csrfProtection = csurf({
   cookie: true
 });
-
-let appSecret;
 
 function postEvent(handlers, req, res, next) {
   const body = req.body;
@@ -125,9 +121,6 @@ function logger(message) {
 }
 
 export function start(observables, handlers) {
-
-  processLifecycle.log.subscribe(logger);
-  processLifecycle.startup();
 
   const app = express();
   app.enable('trust proxy');

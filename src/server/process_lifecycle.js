@@ -1,62 +1,48 @@
 import Rx from 'rxjs';
 
-import * as database from './database';
-
-
-export const eventsSubject = new Rx.Subject();
 export const logSubject = new Rx.Subject();
-
 export const log = logSubject.asObservable();
+
 const HEARTBEAT_INTERVAL = 15 * 60 * 1000;
 
-export function startup() {
-  insertServerEvent('startup');
+/*
+  insertEvent - This should be a function that takes event and returns
+     a promise that resolves when the event is persisted. The process won't
+     exit until the shutdown event is persisted or a timeout elapses.
+*/
+export function startup(insertEvent) {
+  insertEvent({type: 'startup'});
 
-  const intervalId = setInterval(insertServerHeartbeat, HEARTBEAT_INTERVAL);
+  const intervalId = setInterval(
+    () => insertEvent({type: 'heartbeat'})
+  , HEARTBEAT_INTERVAL);
 
-  process.on('SIGINT', cleanup.bind(null, intervalId));
-  process.on('SIGTERM', cleanup.bind(null, intervalId));
-}
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 
-function insertServerHeartbeat() {
-  return insertServerEvent('heartbeat');
-}
+  function cleanup() {
+    logSubject.next("Cleaning up")
 
-function insertServerEvent(type) {
-  return database.insertEvent('process-lifecycle', {type: type})
-}
+    clearInterval(intervalId);
 
-function cleanup(intervalId) {
-  logSubject.next("Cleaning up")
+    function exit() {
+      logSubject.next('exiting');
+      process.exit(0);
+    }
 
-  clearInterval(intervalId);
+    function exitWithError(error) {
+      console.error(error);
+      process.exit(1);
+    }
 
-  function exit() {
-    logSubject.next('exiting');
-    process.exit(0);
+    setTimeout(
+      function() {
+        logSubject.next("Cleanup timed out");
+        process.exit(2);
+      },
+      15000
+    )
+
+    insertEvent({type: 'shutdown'}).then(exit, exitWithError);
   }
-
-  function exitWithError(error) {
-    console.error(error);
-    process.exit(1);
-  }
-
-  setTimeout(
-    function() {
-      logSubject.next("Cleanup timed out");
-      process.exit(2);
-    },
-    15000
-  )
-
-  insertServerEvent('shutdown').then(exit, exitWithError);
 }
-
-
-// function logger(key) {
-//   return {
-//     next(x) { console.log(key, x); },
-//     error(err) { console.log('ERROR:' + key, err); },
-//     complete() { console.log('COMPLETED:' + key); }
-//   };
-// }
